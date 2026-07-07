@@ -1,5 +1,7 @@
 import { AmblyotrisGame } from './amblyotris/AmblyotrisGame';
 import { AmblyonoidGame } from './amblyonoid/AmblyonoidGame';
+import { BridgeDockGame } from './bridgedock/BridgeDockGame';
+import { FlyingBirdGame } from './flyingbird/FlyingBirdGame';
 import type { GameController, GameDefinition } from './types';
 
 export const GAMES: GameDefinition[] = [
@@ -33,6 +35,34 @@ export const GAMES: GameDefinition[] = [
         board: opts.board,
         settings: opts.settings,
         soundBasePath: '/assets/amblyotris',
+      }) as unknown as GameController,
+  },
+  {
+    id: 'bridgedock',
+    nameKey: 'game.bridgedock.name',
+    descKey: 'game.bridgedock.desc',
+    screenshot: '/assets/bridgedock/logo.svg',
+    controlScheme: 'pointer',
+    hasPreview: false,
+    boardAspect: 0.75,
+    create: (opts) =>
+      new BridgeDockGame({
+        board: opts.board,
+        settings: opts.settings,
+      }) as unknown as GameController,
+  },
+  {
+    id: 'flyingbird',
+    nameKey: 'game.flyingbird.name',
+    descKey: 'game.flyingbird.desc',
+    screenshot: '/assets/flyingbird/logo.svg',
+    controlScheme: 'glider',
+    hasPreview: false,
+    boardAspect: 4 / 3,
+    create: (opts) =>
+      new FlyingBirdGame({
+        board: opts.board,
+        settings: opts.settings,
       }) as unknown as GameController,
   },
 ];

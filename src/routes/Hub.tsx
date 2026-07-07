@@ -38,6 +38,24 @@ export function Hub() {
         ))}
       </section>
 
+      <section className="hub__exercises">
+        <h3>{t('hub.exercisesTitle')}</h3>
+        <div className="hub__games">
+          <article className="card">
+            <div className="card__media">
+              <img src="/assets/orthoptics/logo.svg" alt={t('game.orthoptics.name')} loading="lazy" />
+            </div>
+            <div className="card__body">
+              <h2>{t('game.orthoptics.name')}</h2>
+              <p>{t('game.orthoptics.desc')}</p>
+              <Link className="btn btn--primary" to="/exercise/orthoptics">
+                {t('hub.play')}
+              </Link>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section className="hub__glasses">
         <h3>{t('hub.glassesTitle')}</h3>
         <p>{t('hub.glassesText')}</p>

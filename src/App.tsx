@@ -4,11 +4,11 @@ import { useI18n } from './i18n';
 export function App() {
   const { t, lang, setLang } = useI18n();
   const location = useLocation();
-  const isGame = location.pathname.startsWith('/play/');
+  const isImmersive = location.pathname.startsWith('/play/') || location.pathname.startsWith('/exercise/');
 
   return (
     <div className="app">
-      <header className="app__header" data-immersive={isGame}>
+      <header className="app__header" data-immersive={isImmersive}>
         <Link to="/" className="app__brand">
           <span className="app__eye" aria-hidden>
             👁

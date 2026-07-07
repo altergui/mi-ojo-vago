@@ -2,7 +2,7 @@ import type { DichopticSettings } from '@/engine/dichoptic';
 import type { Emitter } from '@/engine/emitter';
 import type { StringKey } from '@/i18n';
 
-export type InputAction = 'left' | 'right' | 'down' | 'rotate' | 'drop' | 'launch';
+export type InputAction = 'left' | 'right' | 'up' | 'down' | 'rotate' | 'drop' | 'launch';
 
 export interface ScoreInfo {
   points: number;
@@ -52,7 +52,12 @@ export interface CreateGameOptions {
   settings?: Partial<DichopticSettings>;
 }
 
-export type ControlScheme = 'tetris' | 'paddle';
+/**
+ * 'paddle'/'pointer' games drive movement by reading pointer/touch position
+ * directly off their own board element (see GameController implementations);
+ * TouchControls renders no directional buttons for them.
+ */
+export type ControlScheme = 'tetris' | 'paddle' | 'pointer' | 'glider';
 
 export interface GameDefinition {
   id: string;

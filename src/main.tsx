@@ -6,6 +6,7 @@ import { App } from './App';
 import { Hub } from './routes/Hub';
 import { GamePage } from './routes/GamePage';
 import { StatsPage } from './routes/StatsPage';
+import { OrthopticsExercise } from './exercises/orthoptics/OrthopticsExercise';
 import './styles/global.css';
 
 const router = createHashRouter([
@@ -15,6 +16,7 @@ const router = createHashRouter([
     children: [
       { index: true, element: <Hub /> },
       { path: 'play/:gameId', element: <GamePage /> },
+      { path: 'exercise/orthoptics', element: <OrthopticsExercise /> },
       { path: 'stats', element: <StatsPage /> },
     ],
   },

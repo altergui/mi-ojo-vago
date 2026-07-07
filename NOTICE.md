@@ -10,6 +10,11 @@ suite of anaglyph (red/cyan) dichoptic games used as adjunct training for amblyo
   https://github.com/Guiladg/amblyotris
 - **Amblyonoid** (Arkanoid) — © 2022 Guilad Gonen — MIT License
   https://github.com/Guiladg/amblyonoid
+- **Bridge Dock** and **Flying Bird** — sourced from the original
+  https://dresiribarren.com.ar/mi-ojo-vago/ deployment.
+- **Orthoptics** — vergence/fusion exercise, based on
+  https://github.com/Jorge1967/Ortoptics, inspired by Dr. Mario Cerrella's
+  Visual Training.
 - Original portal: https://dresiribarren.com.ar/mi-ojo-vago/
 
 The game logic, dichoptic color model, scoring, and assets (sounds, logo) are derived

@@ -55,11 +55,22 @@ function CtrlButton({
 
 export function TouchControls({ scheme, onAction }: Props) {
   if (scheme === 'paddle') {
+    // Position is driven by dragging directly on the board; only launch needs a button.
     return (
       <div className="tc tc--paddle">
-        <CtrlButton label="◀" action="left" onAction={onAction} hold className="tc__btn--wide" />
-        <CtrlButton label="⤒" action="launch" onAction={onAction} />
-        <CtrlButton label="▶" action="right" onAction={onAction} hold className="tc__btn--wide" />
+        <CtrlButton label="⤒" action="launch" onAction={onAction} className="tc__btn--wide" />
+      </div>
+    );
+  }
+  if (scheme === 'pointer') {
+    // Position is driven entirely by dragging on the board; no buttons needed.
+    return null;
+  }
+  if (scheme === 'glider') {
+    return (
+      <div className="tc tc--glider">
+        <CtrlButton label="▲" action="up" onAction={onAction} hold className="tc__btn--wide" />
+        <CtrlButton label="▼" action="down" onAction={onAction} hold className="tc__btn--wide" />
       </div>
     );
   }
