@@ -46,22 +46,6 @@ export interface BridgeDockOptions {
   pauseOnBlur?: boolean;
 }
 
-/** This game's own default palette (navy/maroon, faithful to the source) plus the app's standard palettes as alternates. */
-const BRIDGEDOCK_COLOR_ALTERNATIVES = [
-  ['#FFFFFF', '#000080', '#800000', '#969696'],
-  ['#FFFFFF', '#00ffff', '#ff0000', '#969696'],
-  ['#81007f', '#04007d', '#800000', '#afafaf'],
-];
-
-function bridgeDockDefaultSettings(): DichopticSettings {
-  const base = defaultDichopticSettings();
-  return {
-    ...base,
-    colorAlternatives: BRIDGEDOCK_COLOR_ALTERNATIVES.map((c) => [...c]),
-    color: [...BRIDGEDOCK_COLOR_ALTERNATIVES[0]],
-  };
-}
-
 interface Obstacle {
   x: number; // normalised left edge
   y: number; // normalised top edge
@@ -112,7 +96,7 @@ export class BridgeDockGame {
     this.board = opts.board;
     this.enableKeyboard = opts.enableKeyboard ?? true;
     this.pauseOnBlur = opts.pauseOnBlur ?? true;
-    this.settings = { ...bridgeDockDefaultSettings(), ...opts.settings };
+    this.settings = { ...defaultDichopticSettings(), ...opts.settings };
 
     this.layers = new CanvasLayers<LayerName>(this.board, ['back', 'obstacles', 'active', 'message']);
     this.layers.canvases.message.style.transition = 'opacity 0.3s ease';

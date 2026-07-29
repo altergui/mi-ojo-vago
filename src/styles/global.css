@@ -226,6 +226,10 @@ a {
   background: #0e0e16;
   overflow: hidden;
 }
+/* Orthoptics' original page background (menu.css `body { background: #800080 }`) — kept faithful, unlike the games' unified dark shell. */
+.shell--orthoptics {
+  background: #800080;
+}
 .shell__topbar {
   display: flex;
   align-items: center;

@@ -173,7 +173,7 @@ export function OrthopticsExercise() {
   const t = (esStr: string, enStr: string) => (es ? esStr : enStr);
 
   return (
-    <div className="shell">
+    <div className="shell shell--orthoptics">
       <div className="shell__topbar">
         <Link className="btn btn--ghost" to="/">
           ← {t('Volver', 'Back')}
