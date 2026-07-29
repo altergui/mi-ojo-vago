@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  DEFAULT_COLOR_ALTERNATIVES,
   OPACITY_PERCENT,
   OPACITY_STEPS,
   PALETTE_HIGH_CONTRAST,
@@ -66,6 +67,21 @@ function hslToHex(h: number, s: number, l: number): string {
 }
 
 /**
+ * Fixed hue/saturation per palette/slot, taken from the canonical defaults.
+ * The sliders only ever vary lightness (see module doc comment above), so
+ * hue/sat must come from a stable reference rather than the live stored hex:
+ * at the lightness extremes (0 or 100) a colour turns black/white, which is
+ * achromatic (hue/sat undefined) — re-deriving hue/sat from that hex on the
+ * next drag would silently and irrecoverably flatten the colour to grey.
+ */
+const REFERENCE_HS: [number, number][][] = DEFAULT_COLOR_ALTERNATIVES.map((palette) =>
+  palette.map((hex) => {
+    const [h, s] = hexToHsl(hex);
+    return [h, s];
+  }),
+);
+
+/**
  * Game settings + colour calibration in one panel. The app has exactly two
  * palettes (see dichoptic.ts): PALETTE_HIGH_CONTRAST (white bg, cyan/red
  * eyes) and PALETTE_LOW_CONTRAST (violet bg, navy/maroon eyes). Selecting a
@@ -113,7 +129,7 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
   };
 
   const setSlot = (slot: 0 | 1 | 2, l: number) => {
-    const [h, s] = hexToHsl(colorAlternatives[activeIdx][slot]);
+    const [h, s] = REFERENCE_HS[activeIdx][slot];
     const next = colorAlternatives.map((c) => [...c]);
     next[activeIdx][slot] = hslToHex(h, s, l);
     setColorAlternatives(next);
