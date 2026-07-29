@@ -26,7 +26,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
   const [controller, setController] = useState<GameController | null>(null);
   const [score, setScore] = useState<ScoreInfo>(EMPTY_SCORE);
   const [state, setState] = useState<GameState>(EMPTY_STATE);
-  const [settings, setSettings] = useState<DichopticSettings>(() => loadSettings(def.id));
+  const [settings, setSettings] = useState<DichopticSettings>(() => loadSettings());
 
   const [showWelcome, setShowWelcome] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
@@ -39,7 +39,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
   useEffect(() => {
     const board = boardRef.current;
     if (!board) return;
-    const initial = loadSettings(def.id);
+    const initial = loadSettings();
     const game = def.create({
       board,
       nextCanvas: def.hasPreview ? nextRef.current : null,
@@ -89,7 +89,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
     game.applySettings(patch);
     const full = game.getSettings();
     setSettings(full);
-    saveSettings(def.id, full);
+    saveSettings(full);
   };
 
   const handleReset = () => {

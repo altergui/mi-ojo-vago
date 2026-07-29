@@ -67,7 +67,7 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
           <h3>{t('settings.palette')}</h3>
           <div className="settings__row">
             {settings.colorAlternatives.map((colors, i) => {
-              const selected = draft.color.join() === colors.join() || (draft.color[1] === colors[1] && draft.color[2] === colors[2]);
+              const selected = draft.color[0].toUpperCase() === colors[0].toUpperCase();
               return (
                 <button
                   key={i}

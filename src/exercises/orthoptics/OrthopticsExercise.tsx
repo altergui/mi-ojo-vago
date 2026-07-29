@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/i18n';
+import { loadSettings } from '@/settings/store';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
 
 const BASE = '/assets/orthoptics';
@@ -63,6 +64,7 @@ export function OrthopticsExercise() {
   const es = lang === 'es';
 
   const [prefs, setPrefs] = useState<OrthopticsPrefs>(() => loadOrthopticsPrefs());
+  const [bgColor] = useState(() => loadSettings().color[0]);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
   const [puntoA, setPuntoA] = useState(0);
@@ -173,7 +175,7 @@ export function OrthopticsExercise() {
   const t = (esStr: string, enStr: string) => (es ? esStr : enStr);
 
   return (
-    <div className="shell shell--orthoptics">
+    <div className="shell shell--orthoptics" style={{ background: bgColor }}>
       <div className="shell__topbar">
         <Link className="btn btn--ghost" to="/">
           ← {t('Volver', 'Back')}

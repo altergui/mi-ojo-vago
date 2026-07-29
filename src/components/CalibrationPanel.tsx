@@ -14,19 +14,28 @@ const hex2 = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperC
 const byteOf = (s: string, start: number) => parseInt(s.substring(start, start + 2), 16) || 0;
 
 /**
- * Color calibration, ported from the original showCalibration (game.ts:1471+).
- * White (background) 224-255, cyan blue-channel 208-255, red red-channel 0-100.
+ * Color calibration, extending the original showCalibration (game.ts:1471+).
+ * White (background) 224-255, violet (background) 40-128, cyan blue-channel
+ * 208-255, red red-channel 0-100.
+ *
+ * The app has exactly two backgrounds — violet (colorAlternatives[0]) and
+ * white (colorAlternatives[1]) — each independently calibratable so picking
+ * one doesn't lose the other's calibration; cyan/red are shared by both.
+ * Applying updates whichever background is currently active plus both
+ * colorAlternatives entries, and is saved globally (see settings/store.ts).
  */
 export function CalibrationPanel({ open, settings, onApply, onClose }: Props) {
   const { t } = useI18n();
 
+  const [violet, setViolet] = useState(0);
   const [white, setWhite] = useState(0);
   const [cyan, setCyan] = useState(0);
   const [red, setRed] = useState(0);
 
   const [seenOpen, setSeenOpen] = useState(false);
   if (open && !seenOpen) {
-    setWhite(byteOf(settings.color[0], 1));
+    setViolet(byteOf(settings.colorAlternatives[0][0], 1));
+    setWhite(byteOf(settings.colorAlternatives[1][0], 1));
     setCyan(byteOf(settings.color[1], 5));
     setRed(byteOf(settings.color[2], 3));
     setSeenOpen(true);
@@ -34,16 +43,20 @@ export function CalibrationPanel({ open, settings, onApply, onClose }: Props) {
     setSeenOpen(false);
   }
 
-  const bgColor = `#${hex2(white)}${hex2(white)}${hex2(white)}`;
+  const violetColor = `#${hex2(violet)}00${hex2(violet)}`;
+  const whiteColor = `#${hex2(white)}${hex2(white)}${hex2(white)}`;
   const cyanColor = `#00FF${hex2(cyan)}`;
   const redColor = `#FF${hex2(red)}00`;
 
+  const isWhiteActive = settings.color[0].toUpperCase() === settings.colorAlternatives[1][0].toUpperCase();
+  const activeBgColor = isWhiteActive ? whiteColor : violetColor;
+
   const apply = () => {
-    const color = [...settings.color];
-    color[0] = bgColor;
-    color[1] = cyanColor;
-    color[2] = redColor;
-    onApply({ color });
+    const colorAlternatives = settings.colorAlternatives.map((c) => [...c]);
+    colorAlternatives[0] = [violetColor, cyanColor, redColor, colorAlternatives[0][3]];
+    colorAlternatives[1] = [whiteColor, cyanColor, redColor, colorAlternatives[1][3]];
+    const color = [activeBgColor, cyanColor, redColor, settings.color[3]];
+    onApply({ color, colorAlternatives });
     onClose();
   };
 
@@ -64,7 +77,7 @@ export function CalibrationPanel({ open, settings, onApply, onClose }: Props) {
       }
     >
       <p className="muted">{t('calib.text')}</p>
-      <div className="calib__glasses" style={{ background: bgColor }}>
+      <div className="calib__glasses" style={{ background: activeBgColor }}>
         <span className="calib__eye" style={{ color: cyanColor }}>
           ◆
         </span>
@@ -80,6 +93,10 @@ export function CalibrationPanel({ open, settings, onApply, onClose }: Props) {
       <label className="calib__row">
         <span>{t('calib.red')}</span>
         <input type="range" min={0} max={100} value={red} onChange={(e) => setRed(Number(e.target.value))} />
+      </label>
+      <label className="calib__row">
+        <span>{t('calib.violet')}</span>
+        <input type="range" min={40} max={128} value={violet} onChange={(e) => setViolet(Number(e.target.value))} />
       </label>
       <label className="calib__row">
         <span>{t('calib.white')}</span>
