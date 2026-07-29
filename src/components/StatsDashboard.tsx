@@ -1,9 +1,16 @@
 import { useMemo } from 'react';
-import { useI18n } from '@/i18n';
+import { useI18n, type StringKey } from '@/i18n';
 import { useStats } from '@/stats/useStats';
 import { statsStore, todayKey } from '@/stats/store';
 import { formatDuration, formatDurationShort } from '@/stats/format';
 import { getGame } from '@/games/registry';
+
+const VARIANT_KEYS = new Set(['filled', 'hollow', 'hollowLine']);
+
+/** Translates known variant names; falls back to the raw string for legacy stats data. */
+function variantLabel(variant: string, t: (key: StringKey) => string): string {
+  return VARIANT_KEYS.has(variant) ? t(`variant.${variant}` as StringKey) : variant;
+}
 
 function last7Days(): string[] {
   const days: string[] = [];
@@ -104,7 +111,7 @@ export function StatsDashboard() {
                   {c.cyanEye === 'left' ? t('settings.left') : t('settings.right')} {c.cyanPercent}%
                   <span className="dot" style={{ background: `#FF4040` }} title="red" />
                   {c.cyanEye === 'left' ? t('settings.right') : t('settings.left')} {c.redPercent}%
-                  <span className="tag">{c.variant}</span>
+                  <span className="tag">{variantLabel(c.variant, t)}</span>
                 </div>
                 <div className="contrast-list__bar">
                   <div style={{ width: `${(c.ms / contrastMax) * 100}%` }} />

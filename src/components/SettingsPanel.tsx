@@ -17,10 +17,10 @@ interface Props {
   onClose: () => void;
 }
 
-const VARIANT_LABEL: Record<string, string> = {
-  fullColor: '●',
-  highContrast: '◍',
-  veryHighContrast: '◆',
+const VARIANT_ICON: Record<string, string> = {
+  filled: '●',
+  hollow: '◍',
+  hollowLine: '◆',
 };
 
 function percentToByte(pct: number): string {
@@ -238,12 +238,12 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
         </section>
 
         <section>
-          <h3>{t('settings.difficulty')}</h3>
+          <h3>{t('settings.fill')}</h3>
           <div className="settings__row">
             {settings.variantAlternatives.map((v) => (
               <button key={v} className={`pill ${draft.variant === v ? 'is-selected' : ''}`} onClick={() => update({ variant: v })}>
-                <span className="pill__icon">{VARIANT_LABEL[v]}</span>
-                {v}
+                <span className="pill__icon">{VARIANT_ICON[v]}</span>
+                {t(`variant.${v}`)}
               </button>
             ))}
           </div>

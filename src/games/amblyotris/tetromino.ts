@@ -15,8 +15,8 @@ export class Tetromino {
     this.rotations.forEach((rotation) => {
       rotation.forEach((point, i) => {
         point.color ??= '#000000';
-        point.variant ??= 'fullColor';
-        if (point.variant === 'veryHighContrast') {
+        point.variant ??= 'filled';
+        if (point.variant === 'hollowLine') {
           point.direction ??= i % 2 === 0 ? 'vertical' : 'horizontal';
         }
       });

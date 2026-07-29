@@ -580,10 +580,10 @@ export class AmblyotrisGame {
     ctx.fillStyle = point.color ?? '#000000';
     ctx.fillRect(x, y, s, s);
     const borderWidth = s / 5;
-    if (point.variant !== 'fullColor') {
+    if (point.variant !== 'filled') {
       ctx.clearRect(x + borderWidth, y + borderWidth, s - borderWidth * 2, s - borderWidth * 2);
     }
-    if (point.variant === 'veryHighContrast') {
+    if (point.variant === 'hollowLine') {
       if (point.direction === 'vertical') {
         ctx.fillRect(x + borderWidth * 2, y + borderWidth, borderWidth, s - borderWidth * 2);
       } else {

@@ -22,7 +22,7 @@
  * palette untouched.
  */
 
-export type PointVariant = 'fullColor' | 'highContrast' | 'veryHighContrast';
+export type PointVariant = 'filled' | 'hollow' | 'hollowLine';
 
 /** Index meaning inside a colour alternative / opacity tuple. */
 export const COLOR_INDEX = {
@@ -74,8 +74,8 @@ export function defaultDichopticSettings(): DichopticSettings {
     colorAlternatives: DEFAULT_COLOR_ALTERNATIVES.map((c) => [...c]),
     color: [...DEFAULT_COLOR_ALTERNATIVES[0]],
     opacity: ['FF', 'FF', 'FF', 'FF'],
-    variantAlternatives: ['fullColor', 'highContrast', 'veryHighContrast'],
-    variant: 'fullColor',
+    variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+    variant: 'filled',
     cyanEye: 'left',
   };
 }
