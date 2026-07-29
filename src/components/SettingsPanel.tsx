@@ -67,19 +67,32 @@ function hslToHex(h: number, s: number, l: number): string {
 }
 
 /**
- * Fixed hue/saturation per palette/slot, taken from the canonical defaults.
- * The sliders only ever vary lightness (see module doc comment above), so
- * hue/sat must come from a stable reference rather than the live stored hex:
- * at the lightness extremes (0 or 100) a colour turns black/white, which is
- * achromatic (hue/sat undefined) — re-deriving hue/sat from that hex on the
- * next drag would silently and irrecoverably flatten the colour to grey.
+ * Fixed hue/saturation/default-lightness per palette/slot, taken from the
+ * canonical defaults. The sliders only ever vary lightness (see module doc
+ * comment above), so hue/sat must come from a stable reference rather than
+ * the live stored hex: at the lightness extremes (0 or 100) a colour turns
+ * black/white, which is achromatic (hue/sat undefined) — re-deriving hue/sat
+ * from that hex on the next drag would silently and irrecoverably flatten
+ * the colour to grey.
  */
-const REFERENCE_HS: [number, number][][] = DEFAULT_COLOR_ALTERNATIVES.map((palette) =>
-  palette.map((hex) => {
-    const [h, s] = hexToHsl(hex);
-    return [h, s];
-  }),
+const REFERENCE_HSL: [number, number, number][][] = DEFAULT_COLOR_ALTERNATIVES.map((palette) =>
+  palette.map((hex) => hexToHsl(hex)),
 );
+
+/**
+ * Calibration is meant to be a fine trim, not a repaint: cap how far each
+ * slider can move a colour's lightness away from its default, so it can
+ * never wander into a washed-out near-black/near-white extreme.
+ */
+const MAX_LIGHTNESS_DEVIATION = 20;
+
+function lightnessRange(activeIdx: number, slot: 0 | 1 | 2): { min: number; max: number } {
+  const defaultL = REFERENCE_HSL[activeIdx][slot][2];
+  return {
+    min: Math.max(0, defaultL - MAX_LIGHTNESS_DEVIATION),
+    max: Math.min(100, defaultL + MAX_LIGHTNESS_DEVIATION),
+  };
+}
 
 /**
  * Game settings + colour calibration in one panel. The app has exactly two
@@ -101,11 +114,16 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
   const [cyanL, setCyanL] = useState(0);
   const [redL, setRedL] = useState(0);
 
+  const clampToSlotRange = (idx: number, slot: 0 | 1 | 2, l: number): number => {
+    const { min, max } = lightnessRange(idx, slot);
+    return Math.min(max, Math.max(min, l));
+  };
+
   const selectPalette = (idx: number, source: string[][]) => {
     setActiveIdx(idx);
-    setBgL(hexToHsl(source[idx][0])[2]);
-    setCyanL(hexToHsl(source[idx][1])[2]);
-    setRedL(hexToHsl(source[idx][2])[2]);
+    setBgL(clampToSlotRange(idx, 0, hexToHsl(source[idx][0])[2]));
+    setCyanL(clampToSlotRange(idx, 1, hexToHsl(source[idx][1])[2]));
+    setRedL(clampToSlotRange(idx, 2, hexToHsl(source[idx][2])[2]));
   };
 
   // Re-sync whenever the panel is (re)opened.
@@ -129,7 +147,7 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
   };
 
   const setSlot = (slot: 0 | 1 | 2, l: number) => {
-    const [h, s] = REFERENCE_HS[activeIdx][slot];
+    const [h, s] = REFERENCE_HSL[activeIdx][slot];
     const next = colorAlternatives.map((c) => [...c]);
     next[activeIdx][slot] = hslToHex(h, s, l);
     setColorAlternatives(next);
@@ -179,8 +197,8 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
             <span>{t('calib.cyan')}</span>
             <input
               type="range"
-              min={0}
-              max={100}
+              min={lightnessRange(activeIdx, 1).min}
+              max={lightnessRange(activeIdx, 1).max}
               value={cyanL}
               onChange={(e) => {
                 const v = Number(e.target.value);
@@ -193,8 +211,8 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
             <span>{t('calib.red')}</span>
             <input
               type="range"
-              min={0}
-              max={100}
+              min={lightnessRange(activeIdx, 2).min}
+              max={lightnessRange(activeIdx, 2).max}
               value={redL}
               onChange={(e) => {
                 const v = Number(e.target.value);
@@ -207,8 +225,8 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
             <span>{t('calib.background')}</span>
             <input
               type="range"
-              min={0}
-              max={100}
+              min={lightnessRange(activeIdx, 0).min}
+              max={lightnessRange(activeIdx, 0).max}
               value={bgL}
               onChange={(e) => {
                 const v = Number(e.target.value);
