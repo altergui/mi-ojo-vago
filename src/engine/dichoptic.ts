@@ -16,9 +16,10 @@
  *    (bright saturated colour on white — the highest contrast).
  *  - PALETTE_LOW_CONTRAST: violet background + navy/maroon eye colours
  *    (muted dark colour on a dark background — subtler, lower contrast).
- * Backgrounds (violet/white) and the high-contrast palette's cyan/red are
- * user-calibratable (sliders live in SettingsPanel, under the palette
- * swatches); the low-contrast palette's navy/maroon are fixed.
+ * Selecting a palette in SettingsPanel also targets it for calibration: 3
+ * sliders (background/cyan/red) edit only the currently selected palette's
+ * own colours (lightness only, hue/saturation fixed), leaving the other
+ * palette untouched.
  */
 
 export type PointVariant = 'fullColor' | 'highContrast' | 'veryHighContrast';

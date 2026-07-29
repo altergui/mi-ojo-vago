@@ -27,39 +27,79 @@ function percentToByte(pct: number): string {
   return entry ? entry[0] : 'FF';
 }
 
-const hex2 = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
-const byteOf = (s: string, start: number) => parseInt(s.substring(start, start + 2), 16) || 0;
+/** Hex -> [hue 0-360, saturation 0-100, lightness 0-100]. */
+function hexToHsl(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l * 100];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+  else if (max === g) h = ((b - r) / d + 2) * 60;
+  else h = ((r - g) / d + 4) * 60;
+  return [h, s * 100, l * 100];
+}
+
+/** [hue 0-360, saturation 0-100, lightness 0-100] -> hex. */
+function hslToHex(h: number, s: number, l: number): string {
+  const S = s / 100;
+  const L = l / 100;
+  const c = (1 - Math.abs(2 * L - 1)) * S;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = L - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+}
 
 /**
- * Game settings + colour calibration in one panel (extending the original
- * showCalibration, game.ts:1471+). The app has exactly two palettes (see
- * dichoptic.ts): PALETTE_HIGH_CONTRAST (white bg, cyan/red eyes) and
- * PALETTE_LOW_CONTRAST (violet bg, fixed navy/maroon eyes). Both backgrounds
- * and the high-contrast palette's cyan/red are calibratable via sliders
- * right under the palette swatches, so picking a palette and fine-tuning it
- * happen in the same place; navy/maroon are fixed. Calibrating updates both
- * colorAlternatives entries (so switching palettes doesn't lose either
- * one's calibration) plus whichever is currently selected.
+ * Game settings + colour calibration in one panel. The app has exactly two
+ * palettes (see dichoptic.ts): PALETTE_HIGH_CONTRAST (white bg, cyan/red
+ * eyes) and PALETTE_LOW_CONTRAST (violet bg, navy/maroon eyes). Selecting a
+ * palette swatch also targets it for calibration — the 3 sliders below
+ * (background/cyan/red) edit only that palette, leaving the other alone.
+ * Each slider keeps its colour's hue/saturation fixed and only varies
+ * lightness, which is why the same 3 sliders work for either palette (e.g.
+ * "red" spans anywhere from maroon to full red) without separate controls
+ * per palette.
  */
 export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<DichopticSettings>(settings);
+  const [colorAlternatives, setColorAlternatives] = useState<string[][]>(settings.colorAlternatives);
   const [activeIdx, setActiveIdx] = useState(PALETTE_HIGH_CONTRAST);
+  const [bgL, setBgL] = useState(0);
+  const [cyanL, setCyanL] = useState(0);
+  const [redL, setRedL] = useState(0);
 
-  const [white, setWhiteByte] = useState(0);
-  const [violet, setVioletByte] = useState(0);
-  const [cyan, setCyanByte] = useState(0);
-  const [red, setRedByte] = useState(0);
+  const selectPalette = (idx: number, source: string[][]) => {
+    setActiveIdx(idx);
+    setBgL(hexToHsl(source[idx][0])[2]);
+    setCyanL(hexToHsl(source[idx][1])[2]);
+    setRedL(hexToHsl(source[idx][2])[2]);
+  };
 
-  // Re-sync draft whenever the panel is (re)opened.
+  // Re-sync whenever the panel is (re)opened.
   const [seenOpen, setSeenOpen] = useState(false);
   if (open && !seenOpen) {
     setDraft(settings);
-    setActiveIdx(settings.color[0].toUpperCase() === settings.colorAlternatives[PALETTE_LOW_CONTRAST][0].toUpperCase() ? PALETTE_LOW_CONTRAST : PALETTE_HIGH_CONTRAST);
-    setWhiteByte(byteOf(settings.colorAlternatives[PALETTE_HIGH_CONTRAST][0], 1));
-    setVioletByte(byteOf(settings.colorAlternatives[PALETTE_LOW_CONTRAST][0], 1));
-    setCyanByte(byteOf(settings.colorAlternatives[PALETTE_HIGH_CONTRAST][1], 5));
-    setRedByte(byteOf(settings.colorAlternatives[PALETTE_HIGH_CONTRAST][2], 3));
+    setColorAlternatives(settings.colorAlternatives);
+    const idx =
+      settings.color[0].toUpperCase() === settings.colorAlternatives[PALETTE_LOW_CONTRAST][0].toUpperCase() ? PALETTE_LOW_CONTRAST : PALETTE_HIGH_CONTRAST;
+    selectPalette(idx, settings.colorAlternatives);
     setSeenOpen(true);
   } else if (!open && seenOpen) {
     setSeenOpen(false);
@@ -72,14 +112,12 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
     update({ opacity });
   };
 
-  const whiteColor = `#${hex2(white)}${hex2(white)}${hex2(white)}`;
-  const violetColor = `#${hex2(violet)}00${hex2(violet)}`;
-  const cyanColor = `#00FF${hex2(cyan)}`;
-  const redColor = `#FF${hex2(red)}00`;
-
-  const colorAlternatives = draft.colorAlternatives.map((c) => [...c]);
-  colorAlternatives[PALETTE_HIGH_CONTRAST] = [whiteColor, cyanColor, redColor, colorAlternatives[PALETTE_HIGH_CONTRAST][3]];
-  colorAlternatives[PALETTE_LOW_CONTRAST][0] = violetColor;
+  const setSlot = (slot: 0 | 1 | 2, l: number) => {
+    const [h, s] = hexToHsl(colorAlternatives[activeIdx][slot]);
+    const next = colorAlternatives.map((c) => [...c]);
+    next[activeIdx][slot] = hslToHex(h, s, l);
+    setColorAlternatives(next);
+  };
 
   const apply = () => {
     const color = [...colorAlternatives[activeIdx]];
@@ -112,7 +150,7 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
                 key={i}
                 className={`swatch swatch--lg ${activeIdx === i ? 'is-selected' : ''}`}
                 style={{ background: colors[0] }}
-                onClick={() => setActiveIdx(i)}
+                onClick={() => selectPalette(i, colorAlternatives)}
                 aria-label={`palette ${i + 1}`}
               >
                 <span style={{ background: colors[1] }} />
@@ -123,19 +161,45 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
 
           <label className="calib__row">
             <span>{t('calib.cyan')}</span>
-            <input type="range" min={208} max={255} value={cyan} onChange={(e) => setCyanByte(Number(e.target.value))} />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={cyanL}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setCyanL(v);
+                setSlot(1, v);
+              }}
+            />
           </label>
           <label className="calib__row">
             <span>{t('calib.red')}</span>
-            <input type="range" min={0} max={100} value={red} onChange={(e) => setRedByte(Number(e.target.value))} />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={redL}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setRedL(v);
+                setSlot(2, v);
+              }}
+            />
           </label>
           <label className="calib__row">
-            <span>{t('calib.white')}</span>
-            <input type="range" min={224} max={255} value={white} onChange={(e) => setWhiteByte(Number(e.target.value))} />
-          </label>
-          <label className="calib__row">
-            <span>{t('calib.violet')}</span>
-            <input type="range" min={40} max={128} value={violet} onChange={(e) => setVioletByte(Number(e.target.value))} />
+            <span>{t('calib.background')}</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={bgL}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setBgL(v);
+                setSlot(0, v);
+              }}
+            />
           </label>
         </section>
 
