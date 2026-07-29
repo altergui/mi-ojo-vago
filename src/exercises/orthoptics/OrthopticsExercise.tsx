@@ -16,8 +16,11 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { CalibrationPanel } from '@/components/CalibrationPanel';
+import { SettingsPanel } from '@/components/SettingsPanel';
+import type { DichopticSettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
-import { loadSettings } from '@/settings/store';
+import { loadSettings, saveSettings } from '@/settings/store';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
 
 const BASE = '/assets/orthoptics';
@@ -64,10 +67,20 @@ export function OrthopticsExercise() {
   const es = lang === 'es';
 
   const [prefs, setPrefs] = useState<OrthopticsPrefs>(() => loadOrthopticsPrefs());
-  const [bgColor] = useState(() => loadSettings().color[0]);
+  const [settings, setSettings] = useState<DichopticSettings>(() => loadSettings());
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
   const [puntoA, setPuntoA] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCalib, setShowCalib] = useState(false);
+
+  const handleApplySettings = (patch: Partial<DichopticSettings>) => {
+    setSettings((s) => {
+      const merged = { ...s, ...patch };
+      saveSettings(merged);
+      return merged;
+    });
+  };
 
   const step = prefs.fast ? 10 : 5;
   const lateral = prefs.fast ? 69 : 139;
@@ -175,7 +188,7 @@ export function OrthopticsExercise() {
   const t = (esStr: string, enStr: string) => (es ? esStr : enStr);
 
   return (
-    <div className="shell shell--orthoptics" style={{ background: bgColor }}>
+    <div className="shell shell--orthoptics" style={{ background: settings.color[0] }}>
       <div className="shell__topbar">
         <Link className="btn btn--ghost" to="/">
           ← {t('Volver', 'Back')}
@@ -187,6 +200,12 @@ export function OrthopticsExercise() {
           </div>
         </div>
         <div className="shell__actions">
+          <button className="btn btn--icon" onClick={() => setShowSettings(true)} aria-label={t('Configurar', 'Settings')}>
+            ⚙
+          </button>
+          <button className="btn btn--icon" onClick={() => setShowCalib(true)} aria-label={t('Calibrar colores', 'Calibrate colors')}>
+            🎨
+          </button>
           <button className="btn btn--icon" onClick={goHome} aria-label={t('Centrar', 'Home')}>
             <img src={`${BASE}/home.png`} alt="" width={22} height={22} />
           </button>
@@ -306,6 +325,9 @@ export function OrthopticsExercise() {
           'Use the arrow keys or the buttons to move the shapes. With red/cyan glasses, each eye sees a different shape: bring them together or apart to train fusion.'
         )}
       </p>
+
+      <SettingsPanel open={showSettings} settings={settings} onApply={handleApplySettings} onClose={() => setShowSettings(false)} />
+      <CalibrationPanel open={showCalib} settings={settings} onApply={handleApplySettings} onClose={() => setShowCalib(false)} />
     </div>
   );
 }
