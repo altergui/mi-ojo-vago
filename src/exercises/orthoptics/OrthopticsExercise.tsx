@@ -16,7 +16,6 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalibrationPanel } from '@/components/CalibrationPanel';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import type { DichopticSettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
@@ -72,7 +71,6 @@ export function OrthopticsExercise() {
   const [offsetY, setOffsetY] = useState(0);
   const [puntoA, setPuntoA] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [showCalib, setShowCalib] = useState(false);
 
   const handleApplySettings = (patch: Partial<DichopticSettings>) => {
     setSettings((s) => {
@@ -203,9 +201,6 @@ export function OrthopticsExercise() {
           <button className="btn btn--icon" onClick={() => setShowSettings(true)} aria-label={t('Configurar', 'Settings')}>
             ⚙
           </button>
-          <button className="btn btn--icon" onClick={() => setShowCalib(true)} aria-label={t('Calibrar colores', 'Calibrate colors')}>
-            🎨
-          </button>
           <button className="btn btn--icon" onClick={goHome} aria-label={t('Centrar', 'Home')}>
             <img src={`${BASE}/home.png`} alt="" width={22} height={22} />
           </button>
@@ -327,7 +322,6 @@ export function OrthopticsExercise() {
       </p>
 
       <SettingsPanel open={showSettings} settings={settings} onApply={handleApplySettings} onClose={() => setShowSettings(false)} />
-      <CalibrationPanel open={showCalib} settings={settings} onApply={handleApplySettings} onClose={() => setShowCalib(false)} />
     </div>
   );
 }

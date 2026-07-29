@@ -9,13 +9,16 @@
  * drawn in its lens colour. Lowering one colour's opacity reduces contrast for
  * that eye, forcing the other (typically the amblyopic) eye to do the work.
  *
- * Unified across the whole app (not per-original-game): the only two
- * backgrounds are pure violet (#800080) and white (#FFFFFF), always paired
- * with true cyan/red (#00ffff/#ff0000). The various original per-game
- * defaults (navy/maroon obstacle schemes, the #81007f/#04007d "alternate"
- * palette, etc.) were inconsistent with each other and are not preserved —
- * users calibrate their own violet/white/cyan/red via CalibrationPanel
- * instead of relying on a fixed "faithful" alternate.
+ * Unified across the whole app (not per-original-game) into exactly two
+ * palettes — not just two backgrounds sharing one eye-colour pair, but two
+ * fully separate schemes:
+ *  - PALETTE_HIGH_CONTRAST: white background + true cyan/red eye colours
+ *    (bright saturated colour on white — the highest contrast).
+ *  - PALETTE_LOW_CONTRAST: violet background + navy/maroon eye colours
+ *    (muted dark colour on a dark background — subtler, lower contrast).
+ * Backgrounds (violet/white) and the high-contrast palette's cyan/red are
+ * user-calibratable (sliders live in SettingsPanel, under the palette
+ * swatches); the low-contrast palette's navy/maroon are fixed.
  */
 
 export type PointVariant = 'fullColor' | 'highContrast' | 'veryHighContrast';
@@ -46,10 +49,14 @@ export interface DichopticSettings {
   cyanEye: Eye;
 }
 
-/** The two supported backgrounds (violet default, white alternative), both paired with true cyan/red. */
+/** Index of the high-contrast palette (white bg, true cyan/red eyes) within colorAlternatives. */
+export const PALETTE_HIGH_CONTRAST = 0;
+/** Index of the low-contrast palette (violet bg, navy/maroon eyes) within colorAlternatives. */
+export const PALETTE_LOW_CONTRAST = 1;
+
 export const DEFAULT_COLOR_ALTERNATIVES: string[][] = [
-  ['#800080', '#00ffff', '#ff0000', '#969696'],
   ['#FFFFFF', '#00ffff', '#ff0000', '#969696'],
+  ['#800080', '#04007d', '#800000', '#969696'],
 ];
 
 export const OPACITY_STEPS = ['FF', 'CC', '99', '66', '33'] as const;

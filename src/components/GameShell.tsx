@@ -7,7 +7,6 @@ import { useTrainingRecorder } from '@/stats/useTrainingRecorder';
 import type { GameController, GameDefinition, GameState, InputAction, ScoreInfo } from '@/games/types';
 import { Modal } from './Modal';
 import { SettingsPanel } from './SettingsPanel';
-import { CalibrationPanel } from './CalibrationPanel';
 import { TouchControls } from './TouchControls';
 
 const EMPTY_SCORE: ScoreInfo = { points: 0, level: 1 };
@@ -31,7 +30,6 @@ export function GameShell({ def }: { def: GameDefinition }) {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showCalib, setShowCalib] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [gameOver, setGameOver] = useState<ScoreInfo | null>(null);
 
@@ -119,7 +117,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
     setShowMenu(true);
   };
 
-  const showResumeOverlay = !showWelcome && !gameOver && !showMenu && !showSettings && !showCalib && !showConfirmReset && state.paused && !state.starting;
+  const showResumeOverlay = !showWelcome && !gameOver && !showMenu && !showSettings && !showConfirmReset && state.paused && !state.starting;
 
   return (
     <div className="shell" ref={shellRef}>
@@ -203,9 +201,6 @@ export function GameShell({ def }: { def: GameDefinition }) {
           <button className="btn" onClick={() => { setShowMenu(false); setShowSettings(true); }}>
             {t('shell.settings')}
           </button>
-          <button className="btn" onClick={() => { setShowMenu(false); setShowCalib(true); }}>
-            {t('shell.calibrate')}
-          </button>
           <button className="btn" onClick={() => setShowConfirmReset(true)}>
             {t('shell.reset')}
           </button>
@@ -266,7 +261,6 @@ export function GameShell({ def }: { def: GameDefinition }) {
       </Modal>
 
       <SettingsPanel open={showSettings} settings={settings} onApply={handleApplySettings} onClose={() => setShowSettings(false)} />
-      <CalibrationPanel open={showCalib} settings={settings} onApply={handleApplySettings} onClose={() => setShowCalib(false)} />
     </div>
   );
 }
