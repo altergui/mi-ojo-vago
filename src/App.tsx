@@ -22,6 +22,9 @@ export function App() {
           <NavLink to="/stats" className={({ isActive }) => (isActive ? 'is-active' : '')}>
             {t('nav.stats')}
           </NavLink>
+          <NavLink to="/sync" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+            {t('nav.sync')}
+          </NavLink>
           <button
             type="button"
             className="app__lang"

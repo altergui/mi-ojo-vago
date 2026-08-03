@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { useI18n, type StringKey } from '@/i18n';
-import { useStats } from '@/stats/useStats';
 import { statsStore, todayKey } from '@/stats/store';
 import { formatDuration, formatDurationShort } from '@/stats/format';
 import { getGame } from '@/games/registry';
+import { useSyncedStats } from '@/sync/useSyncedStats';
+import { getSyncSnapshot, syncNow } from '@/sync/engine';
 
 const VARIANT_KEYS = new Set(['filled', 'hollow', 'hollowLine']);
 
@@ -25,7 +26,7 @@ function last7Days(): string[] {
 
 export function StatsDashboard() {
   const { t, lang } = useI18n();
-  const stats = useStats();
+  const stats = useSyncedStats();
 
   const days = useMemo(last7Days, []);
   const dayMax = Math.max(1, ...days.map((d) => stats.byDay[d] ?? 0));
@@ -45,7 +46,12 @@ export function StatsDashboard() {
   };
 
   const clear = () => {
-    if (confirm(t('stats.clearConfirm'))) statsStore.clear();
+    if (confirm(t('stats.clearConfirm'))) {
+      statsStore.clear();
+      // Push the zeroed state right away so a synced remote copy can't resurrect
+      // the deleted numbers on the next pull's max-reconciliation.
+      if (getSyncSnapshot().meta.enabled) void syncNow();
+    }
   };
 
   const dateFmt = (iso: string) => new Date(iso).toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' });

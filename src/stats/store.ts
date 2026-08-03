@@ -114,6 +114,12 @@ class StatsStore {
     return () => this.listeners.delete(fn);
   }
 
+  /** Overwrites the store wholesale — used by the sync module to write back a reconciled/merged result. */
+  replace(data: StatsData): void {
+    this.data = data;
+    this.commit();
+  }
+
   private commit() {
     save(this.data);
     this.listeners.forEach((fn) => fn(this.data));

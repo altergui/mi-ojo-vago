@@ -6,8 +6,12 @@ import { App } from './App';
 import { Hub } from './routes/Hub';
 import { GamePage } from './routes/GamePage';
 import { StatsPage } from './routes/StatsPage';
+import { SyncPage } from './routes/SyncPage';
 import { OrthopticsExercise } from './exercises/orthoptics/OrthopticsExercise';
+import { initSyncOnLoad } from './sync/engine';
 import './styles/global.css';
+
+initSyncOnLoad();
 
 const router = createHashRouter([
   {
@@ -18,6 +22,7 @@ const router = createHashRouter([
       { path: 'play/:gameId', element: <GamePage /> },
       { path: 'exercise/orthoptics', element: <OrthopticsExercise /> },
       { path: 'stats', element: <StatsPage /> },
+      { path: 'sync', element: <SyncPage /> },
     ],
   },
 ]);

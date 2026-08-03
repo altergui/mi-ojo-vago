@@ -1,0 +1,19 @@
+name = "mi-ojo-vago-sync"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+routes = [
+  { pattern = "sync.mi-ojo-vago.guidev.org", custom_domain = true }
+]
+
+# Comma-separated list of origins allowed to call this worker (CORS).
+# Add "http://localhost:5173" here too while developing locally.
+[vars]
+ALLOWED_ORIGINS = "https://mi-ojo-vago.guidev.org"
+
+[observability]
+enabled = true
+
+[[kv_namespaces]]
+binding = "SYNC_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

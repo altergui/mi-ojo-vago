@@ -4,6 +4,7 @@ import type { DichopticSettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
 import { loadSettings, saveSettings } from '@/settings/store';
 import { useTrainingRecorder } from '@/stats/useTrainingRecorder';
+import { scheduleSync } from '@/sync/engine';
 import type { GameController, GameDefinition, GameState, InputAction, ScoreInfo } from '@/games/types';
 import { Modal } from './Modal';
 import { SettingsPanel } from './SettingsPanel';
@@ -88,6 +89,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
     const full = game.getSettings();
     setSettings(full);
     saveSettings(full);
+    scheduleSync();
   };
 
   const handleReset = () => {

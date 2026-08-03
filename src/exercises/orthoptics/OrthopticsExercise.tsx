@@ -20,6 +20,7 @@ import { SettingsPanel } from '@/components/SettingsPanel';
 import type { DichopticSettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
 import { loadSettings, saveSettings } from '@/settings/store';
+import { scheduleSync } from '@/sync/engine';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
 
 const BASE = '/assets/orthoptics';
@@ -76,6 +77,7 @@ export function OrthopticsExercise() {
     setSettings((s) => {
       const merged = { ...s, ...patch };
       saveSettings(merged);
+      scheduleSync();
       return merged;
     });
   };

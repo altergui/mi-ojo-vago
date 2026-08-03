@@ -655,6 +655,43 @@ a {
   gap: 0.75rem;
 }
 
+/* ---------- Sync ---------- */
+.sync__linkRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.sync__input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev2);
+  color: var(--text);
+  font-size: 1rem;
+}
+.sync__error {
+  color: var(--danger, #e5484d);
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+.sync__code {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+.sync__qr {
+  max-width: 220px;
+  margin: 1rem 0;
+}
+.sync__qr svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 @media (max-width: 480px) {
   .shell__hud {
     gap: 0.8rem;
