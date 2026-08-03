@@ -57,12 +57,11 @@ export function getSyncSnapshot(): SyncSnapshot {
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 const DEBOUNCE_MS = 3000;
+const POLL_INTERVAL_MS = 15000;
 let dirty = false;
-// Guards against the statsStore.subscribe trigger below re-scheduling a sync
-// in response to syncNow()'s own statsStore.replace() write-back.
-let applyingRemote = false;
+let syncing = false;
 
-/** Debounced pull-merge-push. Safe to call often (config changes, session end, etc). */
+/** Debounced pull-merge-push, for sparse/deliberate triggers (a settings change). */
 export function scheduleSync(): void {
   if (!snapshot.meta.enabled || !snapshot.meta.code) return;
   dirty = true;
@@ -73,11 +72,24 @@ export function scheduleSync(): void {
   }, DEBOUNCE_MS);
 }
 
-/** Runs pull-merge-push immediately, once. */
+/**
+ * Runs pull-merge-push immediately, once. A no-op if sync isn't enabled, or if
+ * a sync is already in flight (the 15s poll, a reconnect, and an explicit
+ * trigger could otherwise overlap).
+ */
 export async function syncNow(): Promise<void> {
   const meta = snapshot.meta;
-  if (!meta.enabled || !meta.code) return;
+  if (!meta.enabled || !meta.code || syncing) return;
+  syncing = true;
+  try {
+    await syncOnce(meta);
+  } finally {
+    syncing = false;
+  }
+}
 
+async function syncOnce(meta: SyncMeta): Promise<void> {
+  if (!meta.code) return;
   const deviceId = getDeviceId();
   const settingsEnvelope = loadSettingsEnvelope();
   const ownStats = statsStore.get();
@@ -92,9 +104,7 @@ export async function syncNow(): Promise<void> {
   const remoteOwnStats = remote?.stats.devices[deviceId]?.stats;
   const reconciledOwnStats = reconcileOwnStats(ownStats, remoteOwnStats);
   if (reconciledOwnStats !== ownStats) {
-    applyingRemote = true;
     statsStore.replace(reconciledOwnStats);
-    applyingRemote = false;
   }
 
   const mergedConfig = mergeConfig(
@@ -197,14 +207,32 @@ export function disconnectSync(): void {
   setSnapshot({ meta: { enabled: false, code: null, lastSyncedAt: null }, remoteDevices: {} });
 }
 
-/** Call once on app startup. If sync was already enabled, kicks off a sync and wires up ongoing triggers. */
+/**
+ * Call once on app startup. Kicks off an initial sync (if already enabled)
+ * and wires up ongoing triggers:
+ *  - a 15s poll while the tab is visible — the safety net. Training time
+ *    accrues into the stats store every second while actively playing, so a
+ *    per-change trigger would reset a debounce continuously and never
+ *    actually fire during a long session; a plain interval can't lose that
+ *    race, and bounds how much progress a crash/disconnect could cost to
+ *    well under a minute.
+ *  - an immediate sync right when the tab becomes visible again, so coming
+ *    back doesn't wait out the rest of the poll interval.
+ *  - a retry on reconnect, for a push that failed while offline.
+ */
 export function initSyncOnLoad(): void {
   if (snapshot.meta.enabled && snapshot.meta.code) {
     void syncNow();
   }
-  statsStore.subscribe(() => {
-    if (!applyingRemote) scheduleSync();
+
+  setInterval(() => {
+    if (document.visibilityState === 'visible') void syncNow();
+  }, POLL_INTERVAL_MS);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void syncNow();
   });
+
   window.addEventListener('online', () => {
     if (dirty) scheduleSync();
   });
