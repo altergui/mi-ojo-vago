@@ -9,11 +9,11 @@ routes = [
 # Comma-separated list of origins allowed to call this worker (CORS).
 # Add "http://localhost:5173" here too while developing locally.
 [vars]
-ALLOWED_ORIGINS = "https://mi-ojo-vago.guidev.org"
+ALLOWED_ORIGINS = "https://mi-ojo-vago.guidev.org,https://mi-ojo-vago-dev.guidev.org"
 
 [observability]
 enabled = true
 
 [[kv_namespaces]]
 binding = "SYNC_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "2084e9b71b5b49049acf7d85937031b4"
