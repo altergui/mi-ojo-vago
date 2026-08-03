@@ -19,7 +19,8 @@ import { Link } from 'react-router-dom';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import type { DichopticSettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
-import { loadSettings, saveSettings } from '@/settings/store';
+import { saveSettings } from '@/settings/store';
+import { useSettings } from '@/settings/useSettings';
 import { scheduleSync } from '@/sync/engine';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
 
@@ -67,19 +68,15 @@ export function OrthopticsExercise() {
   const es = lang === 'es';
 
   const [prefs, setPrefs] = useState<OrthopticsPrefs>(() => loadOrthopticsPrefs());
-  const [settings, setSettings] = useState<DichopticSettings>(() => loadSettings());
+  const settings = useSettings();
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
   const [puntoA, setPuntoA] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
 
   const handleApplySettings = (patch: Partial<DichopticSettings>) => {
-    setSettings((s) => {
-      const merged = { ...s, ...patch };
-      saveSettings(merged);
-      scheduleSync();
-      return merged;
-    });
+    saveSettings({ ...settings, ...patch });
+    scheduleSync();
   };
 
   const step = prefs.fast ? 10 : 5;

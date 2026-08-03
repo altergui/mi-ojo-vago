@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { DichopticSettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
-import { loadSettings, saveSettings } from '@/settings/store';
+import { loadSettings, saveSettings, settingsStore } from '@/settings/store';
 import { useTrainingRecorder } from '@/stats/useTrainingRecorder';
 import { scheduleSync } from '@/sync/engine';
 import type { GameController, GameDefinition, GameState, InputAction, ScoreInfo } from '@/games/types';
@@ -74,6 +74,17 @@ export function GameShell({ def }: { def: GameDefinition }) {
   }, [def]);
 
   useTrainingRecorder(controller, def.id, () => gameRef.current?.getScore().points);
+
+  // Reflect settings changes that arrive from elsewhere — another game's settings
+  // panel (settings are global) or a cross-device sync merge — into the live
+  // controller, not just on next mount. Redundant but harmless when the change
+  // originated from this component's own handleApplySettings below.
+  useEffect(() => {
+    return settingsStore.subscribe((envelope) => {
+      gameRef.current?.applySettings(envelope.settings);
+      setSettings(gameRef.current?.getSettings() ?? envelope.settings);
+    });
+  }, []);
 
   const doInput = useCallback((action: InputAction) => gameRef.current?.input(action), []);
 
