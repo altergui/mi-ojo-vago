@@ -102,6 +102,10 @@ const STRINGS = {
     'sync.never': 'todavía no',
     'sync.disconnect': 'Desconectar',
     'sync.disconnectConfirm': '¿Desconectar este dispositivo? Se deja de sincronizar, pero tus datos locales se conservan.',
+    'sync.devices': 'Dispositivos',
+    'sync.thisDevice': 'este dispositivo',
+    'stats.deviceId': 'ID',
+    'stats.device': 'Dispositivo',
   },
   en: {
     'app.title': 'My Lazy Eye',
@@ -201,6 +205,10 @@ const STRINGS = {
     'sync.never': 'not yet',
     'sync.disconnect': 'Disconnect',
     'sync.disconnectConfirm': 'Disconnect this device? Syncing stops, but your local data is kept.',
+    'sync.devices': 'Devices',
+    'sync.thisDevice': 'this device',
+    'stats.deviceId': 'ID',
+    'stats.device': 'Device',
   },
 } as const;
 

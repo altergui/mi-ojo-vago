@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '@/i18n';
-import { useSyncMeta } from '@/sync/useSyncState';
+import { useDeviceList, useSyncMeta } from '@/sync/useSyncState';
 import { enableSync, linkDevice, disconnectSync } from '@/sync/engine';
 import { canonicalToLinkUrl, canonicalToWords, wordsToCanonical } from '@/sync/code';
+import { shortDeviceId } from '@/sync/deviceId';
 import { renderQrSvg } from '@/sync/qr';
 
 export function SyncPage() {
   const { t, lang } = useI18n();
   const meta = useSyncMeta();
+  const devices = useDeviceList();
   const navigate = useNavigate();
   const { code: scannedCode } = useParams<{ code?: string }>();
 
@@ -76,7 +78,7 @@ export function SyncPage() {
     if (confirm(t('sync.disconnectConfirm'))) disconnectSync();
   };
 
-  const dateFmt = (iso: string) => new Date(iso).toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' });
+  const dateFmt = (when: string | number) => new Date(when).toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' });
 
   return (
     <div className="stats sync">
@@ -127,6 +129,33 @@ export function SyncPage() {
           <button className="btn btn--danger" onClick={handleDisconnect}>
             {t('sync.disconnect')}
           </button>
+        </section>
+      )}
+
+      {meta.enabled && (
+        <section className="stats__block">
+          <h2>{t('sync.devices')}</h2>
+          <table className="sessions">
+            <thead>
+              <tr>
+                <th>{t('stats.deviceId')}</th>
+                <th>{t('stats.device')}</th>
+                <th>{t('sync.lastSynced')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.map((d) => (
+                <tr key={d.deviceId}>
+                  <td>{shortDeviceId(d.deviceId)}</td>
+                  <td>
+                    {d.label}
+                    {d.isSelf && <span className="tag">{t('sync.thisDevice')}</span>}
+                  </td>
+                  <td>{d.lastActiveAt ? dateFmt(d.lastActiveAt) : t('sync.never')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
       )}
     </div>

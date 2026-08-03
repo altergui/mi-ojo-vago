@@ -7,12 +7,13 @@ function stats(overrides: Partial<StatsData> = {}): StatsData {
   return { ...zeroStats(1), ...overrides };
 }
 
-function session(id: string, startedAt: string, durationMs = 60_000): SessionRecord {
+function session(id: string, startedAt: string, durationMs = 60_000, deviceId = 'device-a'): SessionRecord {
   return {
     id,
     game: 'amblyotris',
     startedAt,
     durationMs,
+    deviceId,
     settings: { cyanEye: 'left', cyanPercent: 100, redPercent: 60, variant: 'filled' },
   };
 }
@@ -102,15 +103,15 @@ describe('mergeForDisplay', () => {
     // 250 own (August) sessions alone exceed the 200 cap, so every kept session
     // should be an own one — none of the 50 older (July) remote sessions fit.
     const timeAt = (day: string, i: number) => `${day}T${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}:00Z`;
-    const many = Array.from({ length: 250 }, (_, i) => session(`own-${i}`, timeAt('2026-08-01', i)));
-    const moreMany = Array.from({ length: 50 }, (_, i) => session(`remote-${i}`, timeAt('2026-07-01', i)));
+    const many = Array.from({ length: 250 }, (_, i) => session(`own-${i}`, timeAt('2026-08-01', i), 60_000, 'device-a'));
+    const moreMany = Array.from({ length: 50 }, (_, i) => session(`remote-${i}`, timeAt('2026-07-01', i), 60_000, 'device-b'));
     const own = stats({ sessions: many });
     const remoteDevices = { deviceB: stats({ sessions: moreMany }) };
 
     const merged = mergeForDisplay(own, remoteDevices);
 
     expect(merged.sessions.length).toBe(200);
-    expect(merged.sessions.every((s) => s.id.startsWith('own-'))).toBe(true);
+    expect(merged.sessions.every((s) => s.id.startsWith('own-') && s.deviceId === 'device-a')).toBe(true);
   });
 
   it('with no remote devices, is equivalent to own stats', () => {

@@ -1,7 +1,17 @@
 import type { DichopticSettings } from '@/engine/dichoptic';
 import type { StatsData } from '@/stats/store';
 
-export const SYNC_SCHEMA_VERSION = 1 as const;
+export const SYNC_SCHEMA_VERSION = 2 as const;
+
+/** A device's stats plus enough to show it in a device list: a glanceable label and when it last pushed. */
+export interface SyncDeviceEntry {
+  /** Raw (length-capped) navigator.userAgent from that device — see deviceId.ts. */
+  label: string;
+  /** Epoch ms, when this device last successfully pushed — its own "last sync" / "last seen". */
+  lastActiveAt: number;
+  /** `sessions` trimmed to <=50 (payload budget) — see merge.ts capSessionsForPush. */
+  stats: StatsData;
+}
 
 /** What's actually stored in KV under a sync code. */
 export interface SyncBlob {
@@ -11,8 +21,8 @@ export interface SyncBlob {
     updatedAt: number;
   };
   stats: {
-    /** Keyed by deviceId. Each device's own entry has `sessions` trimmed to <=50 (payload budget). */
-    devices: Record<string, StatsData>;
+    /** Keyed by deviceId. */
+    devices: Record<string, SyncDeviceEntry>;
   };
 }
 
@@ -47,18 +57,18 @@ export function saveSyncMeta(meta: SyncMeta): void {
   }
 }
 
-/** Cached last-pulled snapshot of *other* devices' stats, keyed by their deviceId. Never merged into our own counters. */
-export function loadRemoteDevices(): Record<string, StatsData> {
+/** Cached last-pulled snapshot of *other* devices' entries, keyed by their deviceId. Never merged into our own counters. */
+export function loadRemoteDevices(): Record<string, SyncDeviceEntry> {
   try {
     const raw = localStorage.getItem(REMOTE_DEVICES_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Record<string, StatsData>;
+    return JSON.parse(raw) as Record<string, SyncDeviceEntry>;
   } catch {
     return {};
   }
 }
 
-export function saveRemoteDevices(devices: Record<string, StatsData>): void {
+export function saveRemoteDevices(devices: Record<string, SyncDeviceEntry>): void {
   try {
     localStorage.setItem(REMOTE_DEVICES_KEY, JSON.stringify(devices));
   } catch {

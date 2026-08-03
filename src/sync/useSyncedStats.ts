@@ -19,5 +19,7 @@ export function useSyncedStats(): StatsData {
     () => getSyncSnapshot()
   );
 
-  return meta.enabled ? mergeForDisplay(own, remoteDevices) : own;
+  if (!meta.enabled) return own;
+  const remoteStats = Object.fromEntries(Object.entries(remoteDevices).map(([id, entry]) => [id, entry.stats]));
+  return mergeForDisplay(own, remoteStats);
 }

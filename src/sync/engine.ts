@@ -4,7 +4,7 @@
  * call the exported functions; they don't touch localStorage or the network
  * directly for sync purposes.
  */
-import { getDeviceId } from './deviceId';
+import { getDeviceId, getDeviceLabel } from './deviceId';
 import { generateCanonicalCode, isValidCanonicalCode, wordsToCanonical } from './code';
 import { pullBlob, pushBlob } from './client';
 import {
@@ -15,15 +15,24 @@ import {
   saveSyncMeta,
   SYNC_SCHEMA_VERSION,
   type SyncBlob,
+  type SyncDeviceEntry,
   type SyncMeta,
 } from './schema';
 import { capSessionsForPush, mergeConfig, reconcileOwnStats } from './merge';
 import { loadSettingsEnvelope, saveSettingsEnvelope } from '@/settings/store';
-import { statsStore, type StatsData } from '@/stats/store';
+import { statsStore } from '@/stats/store';
 
 export interface SyncSnapshot {
   meta: SyncMeta;
-  remoteDevices: Record<string, StatsData>;
+  remoteDevices: Record<string, SyncDeviceEntry>;
+}
+
+/** One row for a device-list UI: this device or a cached-remote one. */
+export interface DeviceListEntry {
+  deviceId: string;
+  label: string;
+  lastActiveAt: number | null;
+  isSelf: boolean;
 }
 
 // A single cached snapshot object, replaced (not mutated) on change — required
@@ -80,7 +89,7 @@ export async function syncNow(): Promise<void> {
     // Pull failures are silent — we still push our local state below.
   }
 
-  const remoteOwnStats = remote?.stats.devices[deviceId];
+  const remoteOwnStats = remote?.stats.devices[deviceId]?.stats;
   const reconciledOwnStats = reconcileOwnStats(ownStats, remoteOwnStats);
   if (reconciledOwnStats !== ownStats) {
     applyingRemote = true;
@@ -96,10 +105,10 @@ export async function syncNow(): Promise<void> {
     saveSettingsEnvelope({ schemaVersion: settingsEnvelope.schemaVersion, ...mergedConfig });
   }
 
-  const otherDevices: Record<string, StatsData> = {};
+  const otherDevices: Record<string, SyncDeviceEntry> = {};
   if (remote) {
-    for (const [id, stats] of Object.entries(remote.stats.devices)) {
-      if (id !== deviceId) otherDevices[id] = stats;
+    for (const [id, entry] of Object.entries(remote.stats.devices)) {
+      if (id !== deviceId) otherDevices[id] = entry;
     }
   }
   saveRemoteDevices(otherDevices);
@@ -111,7 +120,7 @@ export async function syncNow(): Promise<void> {
     stats: {
       devices: {
         ...otherDevices,
-        [deviceId]: capSessionsForPush(reconciledOwnStats),
+        [deviceId]: { label: getDeviceLabel(), lastActiveAt: Date.now(), stats: capSessionsForPush(reconciledOwnStats) },
       },
     },
   };
@@ -149,6 +158,37 @@ export async function linkDevice(input: string): Promise<{ ok: true } | { ok: fa
   } catch {
     return { ok: false, error: 'network' };
   }
+}
+
+/**
+ * All known devices for a device-list UI: this device first, then cached
+ * remote ones sorted by most-recently-active. Self shows up even when sync
+ * has never successfully completed (lastActiveAt null in that case).
+ *
+ * Pure function of a snapshot (rather than reading module state directly) so
+ * a hook can derive it via useMemo — required for useSyncExternalStore
+ * consumers, whose getSnapshot must return a stable/cached reference.
+ */
+export function deviceListFromSnapshot(snap: SyncSnapshot): DeviceListEntry[] {
+  const self: DeviceListEntry = {
+    deviceId: getDeviceId(),
+    label: getDeviceLabel(),
+    lastActiveAt: snap.meta.lastSyncedAt ? new Date(snap.meta.lastSyncedAt).getTime() : null,
+    isSelf: true,
+  };
+  const others = Object.entries(snap.remoteDevices)
+    .map(([deviceId, entry]) => ({ deviceId, label: entry.label, lastActiveAt: entry.lastActiveAt, isSelf: false }))
+    .sort((a, b) => (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0));
+  return [self, ...others];
+}
+
+/** deviceId -> label, for attributing sessions to a device in the stats table. Always includes at least this device. */
+export function deviceLabelsFromSnapshot(snap: SyncSnapshot): Record<string, string> {
+  const labels: Record<string, string> = { [getDeviceId()]: getDeviceLabel() };
+  for (const [deviceId, entry] of Object.entries(snap.remoteDevices)) {
+    labels[deviceId] = entry.label;
+  }
+  return labels;
 }
 
 /** Stops syncing. Leaves local settings/stats untouched — only clears sync bookkeeping. */

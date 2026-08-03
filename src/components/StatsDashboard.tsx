@@ -5,6 +5,8 @@ import { formatDuration, formatDurationShort } from '@/stats/format';
 import { getGame } from '@/games/registry';
 import { useSyncedStats } from '@/sync/useSyncedStats';
 import { getSyncSnapshot, syncNow } from '@/sync/engine';
+import { useDeviceLabels } from '@/sync/useSyncState';
+import { shortDeviceId } from '@/sync/deviceId';
 
 const VARIANT_KEYS = new Set(['filled', 'hollow', 'hollowLine']);
 
@@ -27,6 +29,7 @@ function last7Days(): string[] {
 export function StatsDashboard() {
   const { t, lang } = useI18n();
   const stats = useSyncedStats();
+  const deviceLabels = useDeviceLabels();
 
   const days = useMemo(last7Days, []);
   const dayMax = Math.max(1, ...days.map((d) => stats.byDay[d] ?? 0));
@@ -141,6 +144,8 @@ export function StatsDashboard() {
                 <th>{t('nav.games')}</th>
                 <th>{t('stats.duration')}</th>
                 <th>{t('shell.score')}</th>
+                <th>{t('stats.deviceId')}</th>
+                <th>{t('stats.device')}</th>
               </tr>
             </thead>
             <tbody>
@@ -152,6 +157,8 @@ export function StatsDashboard() {
                     <td>{def ? t(def.nameKey) : s.game}</td>
                     <td>{formatDuration(s.durationMs)}</td>
                     <td>{s.score ?? t('common.none')}</td>
+                    <td>{s.deviceId ? shortDeviceId(s.deviceId) : t('common.none')}</td>
+                    <td>{s.deviceId ? (deviceLabels[s.deviceId] ?? t('common.none')) : t('common.none')}</td>
                   </tr>
                 );
               })}

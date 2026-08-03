@@ -11,6 +11,7 @@
  */
 import type { DichopticSettings, Eye } from '@/engine/dichoptic';
 import { opacityToPercent, redEye } from '@/engine/dichoptic';
+import { getDeviceId } from '@/sync/deviceId';
 
 export const STATS_KEY = 'miojovago.stats.v1';
 const STATS_VERSION = 1 as const;
@@ -30,6 +31,8 @@ export interface SessionRecord {
   startedAt: string; // ISO
   durationMs: number;
   score?: number;
+  /** Which device recorded this session. Absent on sessions recorded before this field existed. */
+  deviceId?: string;
   settings: {
     cyanEye: Eye;
     cyanPercent: number;
@@ -145,10 +148,10 @@ class StatsStore {
     this.commit();
   }
 
-  recordSession(rec: Omit<SessionRecord, 'id'>): void {
+  recordSession(rec: Omit<SessionRecord, 'id' | 'deviceId'>): void {
     if (rec.durationMs < 1000) return; // ignore trivial sessions
     const id = `${rec.startedAt}-${Math.round(rec.durationMs)}`;
-    this.data.sessions.unshift({ id, ...rec });
+    this.data.sessions.unshift({ id, deviceId: getDeviceId(), ...rec });
     // keep the most recent 200 sessions
     this.data.sessions = this.data.sessions.slice(0, 200);
     this.commit();
