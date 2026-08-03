@@ -43,14 +43,25 @@ export function canonicalToWords(code: string, lang: Lang): string {
   return `${words[idx1] ?? '?'}-${words[idx2] ?? '?'}-${match[3]}`;
 }
 
+/** Deep link that scanning the QR (or pasting into "have a code?") auto-links from, e.g. ".../#/sync/17-42-742". */
+export function canonicalToLinkUrl(code: string): string {
+  return `${window.location.origin}${window.location.pathname}#/sync/${code}`;
+}
+
+/** If `input` is a sync deep link (pasted rather than scanned), pulls the code/words segment out of it; otherwise returns it unchanged. */
+function stripLinkUrl(input: string): string {
+  const match = input.trim().match(/#\/sync\/([^/?#]+)/);
+  return match ? decodeURIComponent(match[1]) : input;
+}
+
 /**
- * Parses user-typed input (word-word-number) back into a canonical code.
- * Tries both wordlists so a code can be entered in either language regardless
- * of which language it was originally generated/displayed in. Returns null if
- * it doesn't parse against either list.
+ * Parses user-typed input (word-word-number, a bare canonical code, or a
+ * pasted sync deep link) back into a canonical code. Tries both wordlists so
+ * a code can be entered in either language regardless of which language it
+ * was originally generated/displayed in. Returns null if it doesn't parse.
  */
 export function wordsToCanonical(input: string): string | null {
-  const trimmed = input.trim().toLowerCase();
+  const trimmed = stripLinkUrl(input).trim().toLowerCase();
   if (isValidCanonicalCode(trimmed)) return trimmed;
 
   const parts = trimmed.split('-').map((p) => p.trim());

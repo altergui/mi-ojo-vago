@@ -1,21 +1,50 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '@/i18n';
 import { useSyncMeta } from '@/sync/useSyncState';
 import { enableSync, linkDevice, disconnectSync } from '@/sync/engine';
-import { canonicalToWords } from '@/sync/code';
+import { canonicalToLinkUrl, canonicalToWords, wordsToCanonical } from '@/sync/code';
 import { renderQrSvg } from '@/sync/qr';
 
 export function SyncPage() {
   const { t, lang } = useI18n();
   const meta = useSyncMeta();
+  const navigate = useNavigate();
+  const { code: scannedCode } = useParams<{ code?: string }>();
 
   const [busy, setBusy] = useState(false);
   const [codeInput, setCodeInput] = useState('');
   const [linkError, setLinkError] = useState<'sync.invalidCode' | 'sync.linkError' | null>(null);
   const [copied, setCopied] = useState(false);
+  const [autoLinking, setAutoLinking] = useState(false);
+
+  // Scanning the QR (or opening a shared sync link) lands here as /sync/:code —
+  // auto-link immediately so scanning is a one-step "instantly synced" action.
+  // Guarded against StrictMode's double-invoke and against clobbering a device
+  // that's already syncing under a different code (that needs an explicit
+  // disconnect first, not a silent switch).
+  const attempted = useRef(false);
+  useEffect(() => {
+    if (!scannedCode || meta.enabled || attempted.current) {
+      if (scannedCode && meta.enabled) navigate('/sync', { replace: true });
+      return;
+    }
+    attempted.current = true;
+    const canonical = wordsToCanonical(scannedCode);
+    setCodeInput(canonical ? canonicalToWords(canonical, lang) : scannedCode);
+    setAutoLinking(true);
+    setLinkError(null);
+    void linkDevice(scannedCode).then((result) => {
+      setAutoLinking(false);
+      if (!result.ok) setLinkError(result.error === 'invalid_code' ? 'sync.invalidCode' : 'sync.linkError');
+      navigate('/sync', { replace: true });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannedCode, meta.enabled]);
 
   const words = meta.code ? canonicalToWords(meta.code, lang) : '';
-  const qrSvg = useMemo(() => (meta.code ? renderQrSvg(meta.code) : ''), [meta.code]);
+  const linkUrl = meta.code ? canonicalToLinkUrl(meta.code) : '';
+  const qrSvg = useMemo(() => (linkUrl ? renderQrSvg(linkUrl) : ''), [linkUrl]);
 
   const handleEnable = async () => {
     setBusy(true);
@@ -72,8 +101,8 @@ export function SyncPage() {
                 onChange={(e) => setCodeInput(e.target.value)}
                 placeholder={t('sync.codePlaceholder')}
               />
-              <button className="btn btn--primary" onClick={() => void handleLink()} disabled={busy || !codeInput.trim()}>
-                {busy ? t('sync.linking') : t('sync.link')}
+              <button className="btn btn--primary" onClick={() => void handleLink()} disabled={busy || autoLinking || !codeInput.trim()}>
+                {busy || autoLinking ? t('sync.linking') : t('sync.link')}
               </button>
             </div>
             {linkError && <p className="sync__error">{t(linkError)}</p>}
