@@ -1,19 +1,21 @@
 :root {
-  /* Light theme (Hub, Stats, Sync). Game/exercise screens override these — see .app[data-immersive]. */
+  /* Light theme (Hub, Stats, Sync), color-matched to the dresiribarren.com.ar
+     reference (green CTA #61CE70, violet brand/heading #5D49AB, gray body
+     copy #454545). Game/exercise screens override these — see .app[data-immersive]. */
   --bg: #ffffff;
   --bg-elev: #f6f6fa;
   --bg-elev2: #ececf2;
   --text: #17171f;
-  --muted: #5c5c72;
-  --primary: #ffcc19;
-  --primary-ink: #1b1b2b;
-  --accent: #0f766e;
+  --muted: #454545;
+  --primary: #61ce70;
+  --primary-ink: #ffffff;
+  --accent: #5d49ab;
   --danger: #dc2626;
   --border: #dcdce6;
   --radius: 12px;
   --shadow: 0 8px 30px rgba(20, 20, 40, 0.08);
-  --footer-bg: #4b2e83;
-  --footer-text: #f1edf8;
+  --footer-bg: #5d49ab;
+  --footer-text: #ffffff;
   color-scheme: light;
 }
 
@@ -24,6 +26,8 @@
   --bg-elev2: #272739;
   --text: #e8e8f0;
   --muted: #a0a0b8;
+  --primary: #ffcc19;
+  --primary-ink: #1b1b2b;
   --accent: #4ad6c8;
   --danger: #ff5c6c;
   --border: #34344a;
@@ -32,6 +36,14 @@
   /* Game/exercise screens keep the original clean sans-serif — the
      reference's monospace look is a Hub/Stats/Sync-only trait. */
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Headings pick up the reference's violet brand color on light (non-immersive)
+   pages only; game/exercise modal titles etc. keep inheriting plain --text. */
+.app:not([data-immersive='true']) h1,
+.app:not([data-immersive='true']) h2,
+.app:not([data-immersive='true']) h3 {
+  color: var(--accent);
 }
 
 * {
@@ -150,6 +162,13 @@ a {
   color: var(--primary-ink);
   border-color: transparent;
 }
+/* Reference uses a second, violet CTA color for "VER MÁS" / "Visual Training"
+   links, distinct from the green used for the game "JUGAR GRATIS" buttons. */
+.btn--accent {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
 .btn--ghost {
   background: transparent;
 }
@@ -169,6 +188,10 @@ a {
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
 }
+.hub__hero {
+  /* Reference centers its whole intro column instead of left-aligning it. */
+  text-align: center;
+}
 .hub__hero h1 {
   margin: 0.2rem 0;
   font-size: clamp(1.8rem, 5vw, 2.8rem);
@@ -176,12 +199,16 @@ a {
 .hub__tagline {
   color: var(--accent);
   font-weight: 600;
-  margin: 0.2rem 0 1rem;
+  margin: 0.2rem auto 1rem;
+  max-width: 640px;
 }
 .hub__intro {
   color: var(--muted);
-  max-width: 60ch;
-  line-height: 1.5;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 1.4375rem;
+  line-height: 1.8;
 }
 .hub__time {
   margin-top: 0.5rem;
@@ -215,31 +242,33 @@ a {
   padding: 1rem;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
   flex: 1;
+  text-align: center;
 }
 .card__body h2 {
   margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
 }
 .card__body p {
   color: var(--muted);
   margin: 0;
   flex: 1;
 }
-.card__body .btn {
-  align-self: flex-start;
-}
 .hub__glasses {
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
+  text-align: center;
 }
 .glasses-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1.25rem;
-  margin-top: 1rem;
+  margin: 1rem auto 0;
   max-width: 480px;
 }
 .glasses-card {
@@ -259,8 +288,8 @@ a {
   background: #fff;
 }
 .glasses-card__name {
-  font-size: 0.85rem;
-  color: var(--text);
+  font-size: 0.8rem;
+  color: #7a7a7a;
 }
 .hub__mario {
   display: flex;
@@ -288,6 +317,12 @@ a {
 .hub__mario-body h3 {
   margin: 0 0 0.6rem;
 }
+/* Reference keeps this particular heading near-black, unlike the violet used
+   for other headings/game titles. (Extra .hub__mario ancestor class needed to
+   outweigh the .app:not([data-immersive]) h1/h2/h3 rule's specificity.) */
+.hub__mario .hub__mario-body h3 {
+  color: var(--text);
+}
 .hub__mario-screenshot {
   max-width: 220px;
   width: 100%;
@@ -305,10 +340,11 @@ a {
   max-width: 1000px;
   margin: 0 auto;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.5rem 1.5rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
   font-size: 0.85rem;
+  text-align: center;
 }
 .site-footer__inner a {
   color: var(--footer-text);

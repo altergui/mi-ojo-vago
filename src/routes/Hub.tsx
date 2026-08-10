@@ -65,7 +65,7 @@ export function Hub() {
           >
             <img src="/assets/brand/glasses-piramide.jpeg" alt={t('hub.glasses.piramideName')} loading="lazy" />
             <span className="glasses-card__name">{t('hub.glasses.piramideName')}</span>
-            <span className="btn btn--primary">{t('hub.glasses.seeMore')}</span>
+            <span className="btn btn--accent">{t('hub.glasses.seeMore')}</span>
           </a>
           <a
             className="glasses-card"
@@ -79,7 +79,7 @@ export function Hub() {
               loading="lazy"
             />
             <span className="glasses-card__name">{t('hub.glasses.mercadolibreName')}</span>
-            <span className="btn btn--primary">{t('hub.glasses.seeMore')}</span>
+            <span className="btn btn--accent">{t('hub.glasses.seeMore')}</span>
           </a>
         </div>
       </section>
@@ -90,7 +90,7 @@ export function Hub() {
           <div className="hub__mario-body">
             <h3>{t('hub.marioTitle')}</h3>
             <a
-              className="btn btn--primary"
+              className="btn btn--accent"
               href="https://dresiribarren.com.ar/visual-training-2/"
               target="_blank"
               rel="noopener noreferrer"
