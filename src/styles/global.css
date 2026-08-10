@@ -29,6 +29,9 @@
   --border: #34344a;
   --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
+  /* Game/exercise screens keep the original clean sans-serif — the
+     reference's monospace look is a Hub/Stats/Sync-only trait. */
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -42,10 +45,19 @@ body,
   margin: 0;
 }
 
+@font-face {
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url('/assets/fonts/roboto-mono.woff2') format('woff2');
+}
+
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Reference site's dominant font for its content (titles, paragraphs). */
+  font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
 }
@@ -61,7 +73,10 @@ a {
   height: 100%;
   /* Re-declared here (not just inherited from body) so elements inside
      .app[data-immersive='true'] pick up the dark-theme text color instead of
-     the light color already resolved/inherited at the body level. */
+     the light color already resolved/inherited at the body level. (Doesn't
+     apply to font-family: that's a literal value on .app[data-immersive],
+     not a custom-property lookup, so it overrides the inherited value on
+     its own via normal cascade.) */
   background: var(--bg);
   color: var(--text);
 }
