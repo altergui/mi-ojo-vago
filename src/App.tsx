@@ -7,13 +7,10 @@ export function App() {
   const isImmersive = location.pathname.startsWith('/play/') || location.pathname.startsWith('/exercise/');
 
   return (
-    <div className="app">
+    <div className="app" data-immersive={isImmersive}>
       <header className="app__header" data-immersive={isImmersive}>
         <Link to="/" className="app__brand">
-          <span className="app__eye" aria-hidden>
-            👁
-          </span>
-          {t('app.title')}
+          <img className="app__logo" src="/assets/brand/logo.png" alt={t('app.title')} />
         </Link>
         <nav className="app__nav">
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
@@ -38,6 +35,17 @@ export function App() {
       <main className="app__main">
         <Outlet />
       </main>
+      {!isImmersive && (
+        <footer className="site-footer">
+          <div className="site-footer__inner">
+            <span>{t('footer.copyright')}</span>
+            <span className="site-footer__donations">
+              {t('footer.donationsLabel')} <a href="mailto:REDACTED_EMAIL">REDACTED_EMAIL</a> ·{' '}
+              <a href="tel:REDACTED_PHONE">REDACTED_PHONE</a>
+            </span>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

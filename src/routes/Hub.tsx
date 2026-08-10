@@ -59,13 +59,50 @@ export function Hub() {
       <section className="hub__glasses">
         <h3>{t('hub.glassesTitle')}</h3>
         <p>{t('hub.glassesText')}</p>
-        <div className="glasses-demo" aria-hidden>
-          <span className="glasses-demo__lens" style={{ background: '#ff0000' }} />
-          <span className="glasses-demo__lens" style={{ background: '#00ffff' }} />
+        <div className="glasses-grid">
+          <a
+            className="glasses-card"
+            href="https://lapiramideopticas.com/product/lentes-rojo-azul-anaglifos-mod01/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img src="/assets/brand/glasses-piramide.jpeg" alt={t('hub.glasses.piramideName')} loading="lazy" />
+            <span className="glasses-card__name">{t('hub.glasses.piramideName')}</span>
+            <span className="btn btn--primary">{t('hub.glasses.seeMore')}</span>
+          </a>
+          <a
+            className="glasses-card"
+            href="https://www.mercadolibre.com.ar/anteojo-3d--lente-anaglifo--columbia-pictures--1-unidad/up/MLAU299767780"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="/assets/brand/glasses-mercadolibre.webp"
+              alt={t('hub.glasses.mercadolibreName')}
+              loading="lazy"
+            />
+            <span className="glasses-card__name">{t('hub.glasses.mercadolibreName')}</span>
+            <span className="btn btn--primary">{t('hub.glasses.seeMore')}</span>
+          </a>
         </div>
       </section>
 
-      <footer className="hub__disclaimer">{t('app.disclaimer')}</footer>
+      <section className="hub__mario">
+        <img src="/assets/brand/mario-cerrella.png" alt={t('hub.marioTitle')} className="hub__mario-photo" />
+        <div className="hub__mario-body">
+          <h3>{t('hub.marioTitle')}</h3>
+          <a
+            className="btn btn--primary"
+            href="https://dresiribarren.com.ar/visual-training-2/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('hub.marioVisualTraining')}
+          </a>
+        </div>
+      </section>
+
+      <p className="hub__disclaimer">{t('app.disclaimer')}</p>
     </div>
   );
 }

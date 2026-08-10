@@ -1,15 +1,32 @@
 :root {
+  /* Light theme (Hub, Stats, Sync). Game/exercise screens override these — see .app[data-immersive]. */
+  --bg: #ffffff;
+  --bg-elev: #f6f6fa;
+  --bg-elev2: #ececf2;
+  --text: #17171f;
+  --muted: #5c5c72;
+  --primary: #ffcc19;
+  --primary-ink: #1b1b2b;
+  --accent: #0f766e;
+  --danger: #dc2626;
+  --border: #dcdce6;
+  --radius: 12px;
+  --shadow: 0 8px 30px rgba(20, 20, 40, 0.08);
+  --footer-bg: #4b2e83;
+  --footer-text: #f1edf8;
+  color-scheme: light;
+}
+
+/* Dark theme, scoped to game/exercise screens only (data-immersive is set while playing). */
+.app[data-immersive='true'] {
   --bg: #14141f;
   --bg-elev: #1e1e2e;
   --bg-elev2: #272739;
   --text: #e8e8f0;
   --muted: #a0a0b8;
-  --primary: #ffcc19;
-  --primary-ink: #1b1b2b;
   --accent: #4ad6c8;
   --danger: #ff5c6c;
   --border: #34344a;
-  --radius: 12px;
   --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }
@@ -42,6 +59,11 @@ a {
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* Re-declared here (not just inherited from body) so elements inside
+     .app[data-immersive='true'] pick up the dark-theme text color instead of
+     the light color already resolved/inherited at the body level. */
+  background: var(--bg);
+  color: var(--text);
 }
 
 .app__header {
@@ -57,15 +79,13 @@ a {
   display: none;
 }
 .app__brand {
-  font-weight: 800;
-  font-size: 1.15rem;
-  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
 }
-.app__eye {
-  filter: drop-shadow(0 0 6px var(--accent));
+.app__logo {
+  height: 2.2rem;
+  width: auto;
+  display: block;
 }
 .app__nav {
   display: flex;
@@ -169,7 +189,7 @@ a {
   aspect-ratio: 16 / 9;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at 50% 40%, #2a2a40, #15151f);
+  background: radial-gradient(circle at 50% 40%, #f0f0f6, #e2e2ec);
 }
 .card__media img {
   max-width: 70%;
@@ -200,22 +220,78 @@ a {
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
 }
-.glasses-demo {
-  display: flex;
-  gap: 4px;
-  margin-top: 0.5rem;
+.glasses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+  max-width: 480px;
 }
-.glasses-demo__lens {
-  width: 60px;
-  height: 40px;
-  border: 3px solid #000;
-  border-radius: 40%;
+.glasses-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+}
+.glasses-card img {
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: #fff;
+}
+.glasses-card__name {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.hub__mario {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.hub__mario-photo {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.hub__mario-body h3 {
+  margin: 0 0 0.6rem;
 }
 .hub__disclaimer {
   margin-top: 2rem;
   color: var(--muted);
   font-size: 0.85rem;
   line-height: 1.4;
+}
+.site-footer {
+  background: var(--footer-bg);
+  color: var(--footer-text);
+  flex: 0 0 auto;
+  padding: 1.25rem 1rem;
+}
+.site-footer__inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  font-size: 0.85rem;
+}
+.site-footer__inner a {
+  color: var(--footer-text);
+  text-decoration: underline;
 }
 
 /* ---------- Game shell ---------- */
