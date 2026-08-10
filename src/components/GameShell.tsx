@@ -28,7 +28,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
   const [state, setState] = useState<GameState>(EMPTY_STATE);
   const [settings, setSettings] = useState<DichopticSettings>(() => loadSettings());
 
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [started, setStarted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
@@ -86,12 +86,15 @@ export function GameShell({ def }: { def: GameDefinition }) {
     });
   }, []);
 
-  const doInput = useCallback((action: InputAction) => gameRef.current?.input(action), []);
+  // The overlay button doubles as "start" (first play) and "resume" (after a
+  // pause); it only ever needs to say "start" once, so latch it the first
+  // time the game actually starts playing — however that happened (overlay,
+  // menu, or the topbar play/pause icon).
+  useEffect(() => {
+    if (state.playing) setStarted(true);
+  }, [state.playing]);
 
-  const handleStart = () => {
-    setShowWelcome(false);
-    gameRef.current?.resume();
-  };
+  const doInput = useCallback((action: InputAction) => gameRef.current?.input(action), []);
 
   const handleApplySettings = (patch: Partial<DichopticSettings>) => {
     const game = gameRef.current;
@@ -130,7 +133,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
     setShowMenu(true);
   };
 
-  const showResumeOverlay = !showWelcome && !gameOver && !showMenu && !showSettings && !showConfirmReset && state.paused && !state.starting;
+  const showResumeOverlay = !gameOver && !showMenu && !showSettings && !showConfirmReset && state.paused && !state.starting;
 
   return (
     <div className="shell" ref={shellRef}>
@@ -183,27 +186,12 @@ export function GameShell({ def }: { def: GameDefinition }) {
         {showResumeOverlay && (
           <button className="shell__overlay shell__overlay--btn" onClick={() => gameRef.current?.resume()}>
             <span className="bigbtn">►</span>
-            <span>{t('shell.resume')}</span>
+            <span>{started ? t('shell.resume') : t('shell.start')}</span>
           </button>
         )}
       </div>
 
       <TouchControls scheme={def.controlScheme} onAction={doInput} />
-
-      {/* Welcome */}
-      <Modal
-        open={showWelcome}
-        title={t('shell.welcome')}
-        hideClose
-        onClose={() => undefined}
-        footer={
-          <button className="btn btn--primary" onClick={handleStart}>
-            {t('shell.start')}
-          </button>
-        }
-      >
-        <p>{t('shell.welcomeText')}</p>
-      </Modal>
 
       {/* Menu */}
       <Modal open={showMenu} title={t('shell.menu')} onClose={() => setShowMenu(false)}>

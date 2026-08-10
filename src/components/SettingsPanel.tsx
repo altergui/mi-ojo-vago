@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import {
   DEFAULT_COLOR_ALTERNATIVES,
   OPACITY_PERCENT,
@@ -178,19 +178,31 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
       <div className="settings">
         <section>
           <h3>{t('settings.palette')}</h3>
-          <div className="settings__row">
-            {colorAlternatives.map((colors, i) => (
-              <button
-                key={i}
-                className={`swatch swatch--lg ${activeIdx === i ? 'is-selected' : ''}`}
-                style={{ background: colors[0] }}
-                onClick={() => selectPalette(i, colorAlternatives)}
-                aria-label={`palette ${i + 1}`}
-              >
-                <span style={{ background: colors[1] }} />
-                <span style={{ background: colors[2] }} />
-              </button>
-            ))}
+          <div className="palette-cards">
+            {colorAlternatives.map((colors, i) => {
+              const cyanFirst = draft.cyanEye === 'left';
+              const dots = [
+                { color: colors[1], opacity: draft.opacity[1], order: cyanFirst ? 1 : 2 },
+                { color: colors[2], opacity: draft.opacity[2], order: cyanFirst ? 2 : 1 },
+              ];
+              return (
+                <button
+                  key={i}
+                  className={`palette-card ${activeIdx === i ? 'is-selected' : ''}`}
+                  style={{ background: colors[0] }}
+                  onClick={() => selectPalette(i, colorAlternatives)}
+                  aria-label={`palette ${i + 1}`}
+                >
+                  {dots.map((dot, j) => (
+                    <span
+                      key={j}
+                      className={`palette-card__dot palette-card__dot--${draft.variant}`}
+                      style={{ order: dot.order, '--dot-color': `${dot.color}${dot.opacity}` } as CSSProperties}
+                    />
+                  ))}
+                </button>
+              );
+            })}
           </div>
 
           <label className="calib__row">
@@ -250,8 +262,8 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
         </section>
 
         <section>
-          <h3>{t('settings.contrastCyan')}</h3>
-          <div className="settings__row">
+          <h3>{t('settings.contrast')}</h3>
+          <div className="settings__row settings__row--contrast">
             {OPACITY_STEPS.map((byte) => (
               <button
                 key={byte}
@@ -263,11 +275,7 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
               </button>
             ))}
           </div>
-        </section>
-
-        <section>
-          <h3>{t('settings.contrastRed')}</h3>
-          <div className="settings__row">
+          <div className="settings__row settings__row--contrast">
             {OPACITY_STEPS.map((byte) => (
               <button
                 key={byte}

@@ -3,6 +3,10 @@
  * arrays — the stimulus images are pre-tinted PNGs, not canvas-drawn), so this
  * is a small parallel store under the same localStorage key convention as
  * src/settings/store.ts.
+ *
+ * Contrast is NOT part of this: it comes from the shared global settings
+ * (src/settings/store.ts), same as every other game — there's no per-exercise
+ * contrast override here.
  */
 const KEY = 'miojovago.settings.orthoptics';
 
@@ -10,12 +14,10 @@ export interface OrthopticsPrefs {
   stimulus: number; // 1..7
   fast: boolean;
   showMarkers: boolean;
-  contrastRed: number; // 100/80/60/40/20
-  contrastCyan: number;
 }
 
 export function defaultOrthopticsPrefs(): OrthopticsPrefs {
-  return { stimulus: 1, fast: false, showMarkers: true, contrastRed: 100, contrastCyan: 100 };
+  return { stimulus: 1, fast: false, showMarkers: true };
 }
 
 export function loadOrthopticsPrefs(): OrthopticsPrefs {

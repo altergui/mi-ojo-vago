@@ -17,6 +17,12 @@
  * The bird itself is drawn as a plain vector circle (neutral grey) rather
  * than porting the original's raster PNG bird-colour picker, which is
  * superseded by this app's shared Settings/Calibration screens.
+ *
+ * Mouse control (new, not in the original): like BridgeDockGame, a mouse
+ * hovering the board directly positions the bird at the cursor's vertical
+ * position (no glide physics) rather than requiring arrow-key holds.
+ * Restricted to `pointerType === 'mouse'` so it doesn't fight with the
+ * touch up/down buttons (TouchControls' 'glider' scheme) on mobile.
  */
 import { CanvasLayers } from '@/engine/canvasLayers';
 import { defaultDichopticSettings, type DichopticSettings } from '@/engine/dichoptic';
@@ -120,6 +126,7 @@ export class FlyingBirdGame {
       document.addEventListener('keydown', this.onKeyDown);
       document.addEventListener('keyup', this.onKeyUp);
     }
+    this.board.addEventListener('pointermove', this.onPointerMove);
     if (this.pauseOnBlur) window.addEventListener('blur', this.onBlur);
     this.lastFrame = performance.now();
     requestAnimFrame(this.loop);
@@ -132,6 +139,7 @@ export class FlyingBirdGame {
     this.startTimers.forEach(clearTimeout);
     document.removeEventListener('keydown', this.onKeyDown);
     document.removeEventListener('keyup', this.onKeyUp);
+    this.board.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('blur', this.onBlur);
     this.sounds.destroy();
     this.layers.destroy();
@@ -187,6 +195,14 @@ export class FlyingBirdGame {
 
   private onBlur = () => {
     if (!this.paused) this.pause();
+  };
+
+  private onPointerMove = (e: PointerEvent): void => {
+    if (!this.canPlay || e.pointerType !== 'mouse') return;
+    const rect = this.board.getBoundingClientRect();
+    if (rect.height === 0) return;
+    const y = (e.clientY - rect.top) / rect.height;
+    this.birdY = Math.min(1 - BIRD_R, Math.max(BIRD_R, y));
   };
 
   private currentDir(): number {

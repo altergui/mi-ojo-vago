@@ -16,13 +16,27 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Modal } from '@/components/Modal';
 import { SettingsPanel } from '@/components/SettingsPanel';
-import type { DichopticSettings } from '@/engine/dichoptic';
+import { COLOR_INDEX, opacityToPercent, type DichopticSettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
 import { saveSettings } from '@/settings/store';
 import { useSettings } from '@/settings/useSettings';
 import { scheduleSync } from '@/sync/engine';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
+
+/** Below this width the exercise is unusable (fine pointer + precise fusion needed) — block with a modal instead. */
+const MOBILE_BREAKPOINT = 768;
+
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return isMobile;
+}
 
 const BASE = '/assets/orthoptics';
 
@@ -44,7 +58,6 @@ const STIMULI: StimulusDef[] = [
   { id: 7, labelEs: 'Estéreo', labelEn: 'Stereo', red: 'stereoR.png', cyan: 'stereoA.png' },
 ];
 
-const CONTRAST_STEPS = [100, 80, 60, 40, 20];
 const PIXEL = 0.66;
 
 /** Mutable ratchet bookkeeping — mirrors the original's finder/finizq/x1/x2/contar/kontar/y2/y3. */
@@ -66,6 +79,7 @@ function freshLimits(lateral: number, arriba: number): Limits {
 export function OrthopticsExercise() {
   const { lang } = useI18n();
   const es = lang === 'es';
+  const isMobile = useIsMobile();
 
   const [prefs, setPrefs] = useState<OrthopticsPrefs>(() => loadOrthopticsPrefs());
   const settings = useSettings();
@@ -184,6 +198,25 @@ export function OrthopticsExercise() {
 
   const t = (esStr: string, enStr: string) => (es ? esStr : enStr);
 
+  if (isMobile) {
+    return (
+      <Modal open title={t('No disponible', 'Not available')} hideClose onClose={() => undefined}>
+        <p>
+          {t(
+            'Este ejercicio no está disponible en el celular, usá una computadora.',
+            'This exercise is not available on mobile, please use a desktop computer.'
+          )}
+        </p>
+        <Link className="btn btn--primary" to="/">
+          {t('Volver', 'Back')}
+        </Link>
+      </Modal>
+    );
+  }
+
+  const cyanContrast = opacityToPercent(settings.opacity[COLOR_INDEX.cyan]) / 100;
+  const redContrast = opacityToPercent(settings.opacity[COLOR_INDEX.red]) / 100;
+
   return (
     <div className="shell shell--orthoptics" style={{ background: settings.color[0] }}>
       <div className="shell__topbar">
@@ -233,33 +266,6 @@ export function OrthopticsExercise() {
         </button>
       </div>
 
-      <div className="ortho__contrasts">
-        <div className="settings__row">
-          <span className="hud__label">{t('Contraste rojo', 'Red contrast')}</span>
-          {CONTRAST_STEPS.map((pct) => (
-            <button
-              key={pct}
-              className={`contrast ${prefs.contrastRed === pct ? 'is-selected' : ''}`}
-              onClick={() => setPrefs((p) => ({ ...p, contrastRed: pct }))}
-            >
-              {pct}%
-            </button>
-          ))}
-        </div>
-        <div className="settings__row">
-          <span className="hud__label">{t('Contraste cian', 'Cyan contrast')}</span>
-          {CONTRAST_STEPS.map((pct) => (
-            <button
-              key={pct}
-              className={`contrast ${prefs.contrastCyan === pct ? 'is-selected' : ''}`}
-              onClick={() => setPrefs((p) => ({ ...p, contrastCyan: pct }))}
-            >
-              {pct}%
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="shell__stage">
         <div className="ortho__stage">
           {prefs.showMarkers && (
@@ -267,56 +273,36 @@ export function OrthopticsExercise() {
               src={`${BASE}/left.png`}
               alt=""
               className="ortho__marker"
-              style={{ opacity: prefs.contrastRed / 100, transform: `translate(${offsetX}px, ${offsetY + 90}px)` }}
+              style={{ opacity: redContrast, transform: `translate(${offsetX}px, ${offsetY + 90}px)` }}
             />
           )}
           <img
             src={`${BASE}/${stim.red}`}
             alt=""
             className="ortho__stimulus"
-            style={{ opacity: prefs.contrastRed / 100, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))` }}
+            style={{ opacity: redContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))` }}
           />
           <img
             src={`${BASE}/${stim.cyan}`}
             alt=""
             className="ortho__stimulus"
-            style={{ opacity: prefs.contrastCyan / 100, transform: `translate(calc(-50% - ${offsetX}px), calc(-50% - ${offsetY}px))` }}
+            style={{ opacity: cyanContrast, transform: `translate(calc(-50% - ${offsetX}px), calc(-50% - ${offsetY}px))` }}
           />
           {prefs.showMarkers && (
             <img
               src={`${BASE}/right.png`}
               alt=""
               className="ortho__marker"
-              style={{ opacity: prefs.contrastCyan / 100, transform: `translate(${-offsetX}px, ${-offsetY + 120}px)` }}
+              style={{ opacity: cyanContrast, transform: `translate(${-offsetX}px, ${-offsetY + 120}px)` }}
             />
           )}
         </div>
       </div>
 
-      <div className="ortho__pad">
-        <button className="tc__btn" onClick={goUp} aria-label="up">
-          <img src={`${BASE}/Arriba.png`} alt="" width={22} height={30} />
-        </button>
-        <div className="ortho__pad-row">
-          <button className="tc__btn" onClick={converge} aria-label="converge">
-            <img src={`${BASE}/I1.png`} alt="" width={28} height={28} />
-          </button>
-          <button className="tc__btn" onClick={goHome} aria-label="home">
-            <img src={`${BASE}/home.png`} alt="" width={28} height={28} />
-          </button>
-          <button className="tc__btn" onClick={diverge} aria-label="diverge">
-            <img src={`${BASE}/D1.png`} alt="" width={28} height={28} />
-          </button>
-        </div>
-        <button className="tc__btn" onClick={goDown} aria-label="down">
-          <img src={`${BASE}/Abajo.png`} alt="" width={22} height={30} />
-        </button>
-      </div>
-
       <p className="ortho__help muted">
         {t(
-          'Usá las flechas del teclado o los botones para mover las figuras. Con anteojos rojo/cian, cada ojo ve una figura distinta: acercalas o alejalas para entrenar la fusión.',
-          'Use the arrow keys or the buttons to move the shapes. With red/cyan glasses, each eye sees a different shape: bring them together or apart to train fusion.'
+          'Usá las flechas del teclado para mover las figuras. Con anteojos rojo/cian, cada ojo ve una figura distinta: acercalas o alejalas para entrenar la fusión.',
+          'Use the arrow keys to move the shapes. With red/cyan glasses, each eye sees a different shape: bring them together or apart to train fusion.'
         )}
       </p>
 

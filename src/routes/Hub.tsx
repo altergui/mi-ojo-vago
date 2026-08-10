@@ -12,6 +12,22 @@ export function Hub() {
     <div className="hub">
       <section className="hub__hero">
         <h1>{t('app.title')}</h1>
+
+        <div className="hub__ortho">
+          <article className="card">
+            <div className="card__media">
+              <img src="/assets/orthoptics/logo.svg" alt={t('game.orthoptics.name')} loading="lazy" />
+            </div>
+            <div className="card__body">
+              <h2>{t('game.orthoptics.name')}</h2>
+              <p>{t('game.orthoptics.desc')}</p>
+              <Link className="btn btn--primary" to="/exercise/orthoptics">
+                {t('hub.trainFree')}
+              </Link>
+            </div>
+          </article>
+        </div>
+
         <p className="hub__tagline">{t('app.tagline')}</p>
         <p className="hub__intro">{t('hub.about1')}</p>
         <p className="hub__intro">{t('hub.about2')}</p>
@@ -39,18 +55,6 @@ export function Hub() {
             </div>
           </article>
         ))}
-        <article className="card">
-          <div className="card__media">
-            <img src="/assets/orthoptics/logo.svg" alt={t('game.orthoptics.name')} loading="lazy" />
-          </div>
-          <div className="card__body">
-            <h2>{t('game.orthoptics.name')}</h2>
-            <p>{t('game.orthoptics.desc')}</p>
-            <Link className="btn btn--primary" to="/exercise/orthoptics">
-              {t('hub.trainFree')}
-            </Link>
-          </div>
-        </article>
       </section>
 
       <section className="hub__glasses">

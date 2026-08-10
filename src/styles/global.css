@@ -227,11 +227,24 @@ a {
 .hub__time {
   margin-top: 0.5rem;
 }
+/* Orthoptics sits alone directly under the title, ahead of the intro text and
+   the 4-game grid — sized like one grid card, not full-width, so it reads as
+   a single featured item rather than a banner. */
+.hub__ortho {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0 1.5rem;
+}
+.hub__ortho .card {
+  width: 100%;
+  max-width: 320px;
+}
 .hub__games {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
-  margin: 1.5rem 0;
+  max-width: 640px;
+  margin: 1.5rem auto;
 }
 .card {
   background: var(--bg-elev);
@@ -422,10 +435,17 @@ a {
   overflow: hidden;
 }
 .shell__board {
+  /* Contain the game engine's internal canvas z-index stack (0-4, set via
+     CanvasLayers) in its own stacking context, so it can never paint above
+     sibling overlays like .shell__overlay regardless of DOM order — without
+     this, the topmost (but often transparent) canvas layer sits above and
+     silently swallows clicks meant for the start/resume button underneath. */
   position: relative;
+  isolation: isolate;
   height: 100%;
   aspect-ratio: 1 / 2;
   max-width: 100%;
+  cursor: none;
 }
 .shell__side {
   position: absolute;
@@ -525,6 +545,16 @@ a {
   .tc {
     display: none;
   }
+  /* On desktop, dock the "next piece" preview right next to the board (as in
+     the dresiribarren reference) instead of floating it, absolutely
+     positioned, at the far edge of the whole stage — which reads as
+     disconnected from the board on wide viewports. Mobile keeps the
+     floating-overlay layout untouched. */
+  .shell__side {
+    position: static;
+    background: transparent;
+    backdrop-filter: none;
+  }
 }
 
 /* ---------- Modal ---------- */
@@ -602,35 +632,52 @@ a {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-.swatch {
-  width: 70px;
-  height: 46px;
-  border-radius: 10px;
-  border: 2px solid transparent;
+.palette-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.palette-card {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 84px;
+  border-radius: 14px;
+  border: 3px solid var(--border);
   cursor: pointer;
   display: flex;
-  gap: 4px;
   align-items: center;
   justify-content: center;
+  gap: 2rem;
+  padding: 0.75rem;
 }
-.swatch span {
-  width: 16px;
-  height: 24px;
-  border-radius: 4px;
-}
-.swatch.is-selected {
+.palette-card.is-selected {
   border-color: var(--primary);
 }
-.swatch--lg {
-  width: 120px;
-  height: 78px;
-  border-radius: 14px;
-  border-width: 3px;
+.palette-card__dot {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  position: relative;
 }
-.swatch--lg span {
-  width: 26px;
-  height: 40px;
-  border-radius: 6px;
+.palette-card__dot--filled {
+  background: var(--dot-color);
+}
+.palette-card__dot--hollow,
+.palette-card__dot--hollowLine {
+  background: transparent;
+  border: 8px solid var(--dot-color);
+}
+.palette-card__dot--hollowLine::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 55%;
+  background: var(--dot-color);
+  transform: translate(-50%, -50%);
 }
 .pill,
 .contrast {
@@ -667,6 +714,25 @@ a {
 }
 .calib__row input {
   width: 100%;
+}
+.settings__row--contrast {
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+}
+.settings__row--contrast + .settings__row--contrast {
+  margin-top: 0.4rem;
+}
+.settings__row--contrast .contrast {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.35rem 0.15rem;
+  font-size: 0.7rem;
+}
+.settings__row--contrast .contrast__swatch {
+  width: 16px;
+  height: 16px;
 }
 
 /* ---------- Stats ---------- */
@@ -856,6 +922,9 @@ a {
     width: 52px;
     height: 52px;
   }
+  .hub__games {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- Orthoptics ---------- */
@@ -877,12 +946,6 @@ a {
   border-radius: 8px;
   padding: 0.35rem 0.5rem;
 }
-.ortho__contrasts {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0 0.8rem 0.5rem;
-}
 .ortho__stage {
   position: relative;
   width: 100%;
@@ -903,17 +966,6 @@ a {
   max-width: 36px;
   max-height: 36px;
   transform: translate(-50%, -50%);
-}
-.ortho__pad {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem;
-}
-.ortho__pad-row {
-  display: flex;
-  gap: 0.6rem;
 }
 .ortho__help {
   padding: 0 0.8rem 0.8rem;
