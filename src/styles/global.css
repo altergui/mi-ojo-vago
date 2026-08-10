@@ -82,7 +82,10 @@ a {
 .app {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  /* min-height (not height): non-immersive pages should grow with their
+     content and let the document scroll normally, so the footer sits after
+     the content instead of pinned to the viewport bottom. */
+  min-height: 100%;
   /* Re-declared here (not just inherited from body) so elements inside
      .app[data-immersive='true'] pick up the dark-theme text color instead of
      the light color already resolved/inherited at the body level. (Doesn't
@@ -91,6 +94,11 @@ a {
      its own via normal cascade.) */
   background: var(--bg);
   color: var(--text);
+}
+.app[data-immersive='true'] {
+  /* Game/exercise screens need a fixed, non-scrolling viewport instead —
+     see .app__main below. */
+  height: 100%;
 }
 
 .app__header {
@@ -138,6 +146,10 @@ a {
 .app__main {
   flex: 1 1 auto;
   min-height: 0;
+}
+.app[data-immersive='true'] .app__main {
+  /* Games/exercises own their scrolling internally; the page itself doesn't
+     scroll. Non-immersive pages use normal document scroll instead. */
   overflow: auto;
 }
 
@@ -200,11 +212,13 @@ a {
   color: var(--accent);
   font-weight: 600;
   margin: 0.2rem auto 1rem;
-  max-width: 640px;
+  max-width: 880px;
 }
 .hub__intro {
   color: var(--muted);
-  max-width: 640px;
+  /* Reference's text column runs nearly the full width of its (wide) page
+     container — 640px read as narrow next to it. */
+  max-width: 880px;
   margin-left: auto;
   margin-right: auto;
   font-size: 1.4375rem;
