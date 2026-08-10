@@ -13,7 +13,10 @@ export function Hub() {
       <section className="hub__hero">
         <h1>{t('app.title')}</h1>
         <p className="hub__tagline">{t('app.tagline')}</p>
-        <p className="hub__intro">{t('hub.intro')}</p>
+        <p className="hub__intro">{t('hub.about1')}</p>
+        <p className="hub__intro">{t('hub.about2')}</p>
+        <p className="hub__intro">{t('hub.about3')}</p>
+        <p className="hub__intro">{t('hub.about4')}</p>
         {stats.totalMs > 0 && (
           <p className="hub__time">
             ⏱ {t('stats.totalTime')}: <strong>{formatDuration(stats.totalMs)}</strong>
@@ -36,24 +39,18 @@ export function Hub() {
             </div>
           </article>
         ))}
-      </section>
-
-      <section className="hub__exercises">
-        <h3>{t('hub.exercisesTitle')}</h3>
-        <div className="hub__games">
-          <article className="card">
-            <div className="card__media">
-              <img src="/assets/orthoptics/logo.svg" alt={t('game.orthoptics.name')} loading="lazy" />
-            </div>
-            <div className="card__body">
-              <h2>{t('game.orthoptics.name')}</h2>
-              <p>{t('game.orthoptics.desc')}</p>
-              <Link className="btn btn--primary" to="/exercise/orthoptics">
-                {t('hub.play')}
-              </Link>
-            </div>
-          </article>
-        </div>
+        <article className="card">
+          <div className="card__media">
+            <img src="/assets/orthoptics/logo.svg" alt={t('game.orthoptics.name')} loading="lazy" />
+          </div>
+          <div className="card__body">
+            <h2>{t('game.orthoptics.name')}</h2>
+            <p>{t('game.orthoptics.desc')}</p>
+            <Link className="btn btn--primary" to="/exercise/orthoptics">
+              {t('hub.trainFree')}
+            </Link>
+          </div>
+        </article>
       </section>
 
       <section className="hub__glasses">
@@ -88,21 +85,26 @@ export function Hub() {
       </section>
 
       <section className="hub__mario">
-        <img src="/assets/brand/mario-cerrella.png" alt={t('hub.marioTitle')} className="hub__mario-photo" />
-        <div className="hub__mario-body">
-          <h3>{t('hub.marioTitle')}</h3>
-          <a
-            className="btn btn--primary"
-            href="https://dresiribarren.com.ar/visual-training-2/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('hub.marioVisualTraining')}
-          </a>
+        <div className="hub__mario-info">
+          <img src="/assets/brand/mario-cerrella.png" alt={t('hub.marioTitle')} className="hub__mario-photo" />
+          <div className="hub__mario-body">
+            <h3>{t('hub.marioTitle')}</h3>
+            <a
+              className="btn btn--primary"
+              href="https://dresiribarren.com.ar/visual-training-2/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('hub.marioVisualTraining')}
+            </a>
+          </div>
         </div>
+        <img
+          src="/assets/brand/visual-training-screenshot.png"
+          alt={t('hub.marioVisualTraining')}
+          className="hub__mario-screenshot"
+        />
       </section>
-
-      <p className="hub__disclaimer">{t('app.disclaimer')}</p>
     </div>
   );
 }

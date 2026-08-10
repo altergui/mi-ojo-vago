@@ -250,13 +250,18 @@ a {
 .hub__mario {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
   flex-wrap: wrap;
   margin: 1.5rem 0;
   padding: 1rem 1.25rem;
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+.hub__mario-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 .hub__mario-photo {
   width: 100px;
@@ -268,11 +273,12 @@ a {
 .hub__mario-body h3 {
   margin: 0 0 0.6rem;
 }
-.hub__disclaimer {
-  margin-top: 2rem;
-  color: var(--muted);
-  font-size: 0.85rem;
-  line-height: 1.4;
+.hub__mario-screenshot {
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 6px solid #111;
 }
 .site-footer {
   background: var(--footer-bg);

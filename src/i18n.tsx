@@ -6,14 +6,19 @@ const STRINGS = {
   es: {
     'app.title': 'Mi Ojo Vago',
     'app.tagline': 'Entrenamiento visual con anteojos anáglifos (rojo/cian) para el ojo vago (ambliopía).',
-    'app.disclaimer':
-      'Estos juegos son una ayuda de entrenamiento, no un dispositivo médico. El tratamiento de la ambliopía debe ser supervisado por un oftalmólogo u ortoptista.',
     'nav.games': 'Juegos',
     'nav.stats': 'Estadísticas',
     'nav.sync': 'Sincronizar',
-    'hub.intro':
-      'Usá anteojos anáglifos (un vidrio rojo y uno azul/cian) sobre tus lentes habituales. Cada ojo verá figuras distintas: reducí el contraste del ojo fuerte para estimular el ojo vago.',
+    'hub.about1':
+      'Esta página gratuita ha sido posible gracias a un grupo de programadores con problemas visuales que trabajaron mano a mano con oftalmólogos y ortoptistas para desarrollarla. Si quiere colaborar aquí tiene más información. Solo deberá comprar alguno de los anteojos sugeridos al pie que son necesarios para los jueguitos.',
+    'hub.about2':
+      'En el ojo vago (ambliopía) hay un ojo que ve menos para fijar y leer. El ojo que fija bien ve mejor que el otro. Por ello todos los juegos de esta página se pueden configurar para que el ojo bueno tenga figuras de menos contraste para que así se estimule el ojo vago.',
+    'hub.about3':
+      'El PC Orthoptics por otro lado, permite entrenar la visión en forma binocular mejorando a quienes tienen mala convergencia y por ello se cansan de leer. Y además en los casos de ambliopía ayuda a mejorar la visión en forma binocular bajando el contraste del ojo bueno.',
+    'hub.about4':
+      'Los otros cuatro jueguitos son para el ojo vago y funcionan tanto en forma binocular como dicotópicamente, pues tienen ambos tipos de estímulo. El Tetris también incluye distintos tipos de contraste en los estímulos.',
     'hub.play': 'JUGAR GRATIS',
+    'hub.trainFree': 'ENTRENAR GRATIS',
     'hub.glassesTitle': '¿No tenés anteojos rojo/cian?',
     'hub.glassesText': 'Necesitás anteojos anáglifos (rojo izquierda / cian derecha) para que el entrenamiento funcione.',
     'hub.glasses.seeMore': 'VER MÁS',
@@ -31,7 +36,6 @@ const STRINGS = {
     'game.flyingbird.desc': 'Esquivá los obstáculos moviendo el pájaro hacia arriba y abajo, con anteojos anáglifos.',
     'game.orthoptics.name': 'Ortóptica',
     'game.orthoptics.desc': 'Ejercicio de fusión y convergencia: acercá o alejá las figuras para entrenar la visión binocular.',
-    'hub.exercisesTitle': 'Ejercicios de convergencia',
     'shell.start': 'Comenzar',
     'shell.resume': 'Continuar',
     'shell.pause': 'Pausa',
@@ -119,14 +123,19 @@ const STRINGS = {
   en: {
     'app.title': 'My Lazy Eye',
     'app.tagline': 'Vision training with anaglyph (red/cyan) glasses for lazy eye (amblyopia).',
-    'app.disclaimer':
-      'These games are a training aid, not a medical device. Amblyopia treatment should be supervised by an ophthalmologist or orthoptist.',
     'nav.games': 'Games',
     'nav.stats': 'Stats',
     'nav.sync': 'Sync',
-    'hub.intro':
-      'Wear anaglyph glasses (one red lens, one blue/cyan) over your usual glasses. Each eye sees different figures: lower the strong eye’s contrast to stimulate the lazy eye.',
+    'hub.about1':
+      'This free website has been made possible thanks to a group of visually impaired programmers who worked hand in hand with ophthalmologists and orthoptists to develop it. If you would like to help, you can find more information here. All you have to do is buy one of the glasses suggested at the bottom, which are necessary for the games.',
+    'hub.about2':
+      'In lazy eye (amblyopia) there is one eye that sees less for fixation and reading. The eye that fixates well sees better than the other eye. That is why all the games on this page can be configured so that the good eye has figures with lower contrast in order to stimulate the lazy eye.',
+    'hub.about3':
+      'PC Orthoptics, on the other hand, allows binocular vision training for those who have poor convergence and therefore get tired of reading. And also in cases of amblyopia it helps to improve binocular vision by lowering the contrast of the good eye.',
+    'hub.about4':
+      'The other four games are for the lazy eye and work both binocularly and dichoptically, as they have both types of stimulus. Tetris also has different type of contrast in the stimulus.',
     'hub.play': 'PLAY FREE',
+    'hub.trainFree': 'FREE TRAINING',
     'hub.glassesTitle': "Don't have red/cyan glasses?",
     'hub.glassesText': 'You need anaglyph glasses (red left / cyan right) for the training to work.',
     'hub.glasses.seeMore': 'SEE MORE',
@@ -144,7 +153,6 @@ const STRINGS = {
     'game.flyingbird.desc': 'Dodge the obstacles by gliding your bird up and down, with anaglyph glasses.',
     'game.orthoptics.name': 'Orthoptics',
     'game.orthoptics.desc': 'Fusion and convergence exercise: bring the shapes together or apart to train binocular vision.',
-    'hub.exercisesTitle': 'Convergence exercises',
     'shell.start': 'Start',
     'shell.resume': 'Resume',
     'shell.pause': 'Pause',
