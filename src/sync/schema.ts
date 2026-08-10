@@ -13,7 +13,7 @@ export interface SyncDeviceEntry {
   stats: StatsData;
 }
 
-/** What's actually stored in KV under a sync code. */
+/** What's actually stored in KV under a sync key. */
 export interface SyncBlob {
   schemaVersion: typeof SYNC_SCHEMA_VERSION;
   config: {
@@ -31,12 +31,14 @@ const REMOTE_DEVICES_KEY = 'miojovago.sync.remoteDevices';
 
 export interface SyncMeta {
   enabled: boolean;
-  code: string | null; // canonical form, e.g. "17-42-742"
+  name: string | null; // as literally typed (original casing/accents) — for display
+  dob: string | null; // as literally typed, ISO YYYY-MM-DD — for display
+  secretHash: string | null; // hex SHA-256 of normalize(name)+normalize(dob) — the KV key
   lastSyncedAt: string | null; // ISO
 }
 
 function defaultMeta(): SyncMeta {
-  return { enabled: false, code: null, lastSyncedAt: null };
+  return { enabled: false, name: null, dob: null, secretHash: null, lastSyncedAt: null };
 }
 
 export function loadSyncMeta(): SyncMeta {

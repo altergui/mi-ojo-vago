@@ -3,7 +3,7 @@ export interface Env {
   ALLOWED_ORIGINS: string;
 }
 
-const CODE_PATTERN = /^\d{1,3}-\d{1,3}-\d{3}$/;
+const SECRET_HASH_PATTERN = /^[0-9a-f]{64}$/;
 const MAX_BODY_BYTES = 50 * 1024;
 const TTL_SECONDS = 360 * 24 * 60 * 60;
 
@@ -44,13 +44,13 @@ export default {
     if (!match) {
       return json({ error: 'not_found' }, 404, cors);
     }
-    const code = match[1];
-    if (!CODE_PATTERN.test(code)) {
-      return json({ error: 'invalid_code' }, 400, cors);
+    const key = match[1];
+    if (!SECRET_HASH_PATTERN.test(key)) {
+      return json({ error: 'invalid_key' }, 400, cors);
     }
 
     if (request.method === 'GET') {
-      const stored = await env.SYNC_KV.get(code);
+      const stored = await env.SYNC_KV.get(key);
       if (stored === null) {
         return json({ error: 'not_found' }, 404, cors);
       }
@@ -74,7 +74,7 @@ export default {
         return json({ error: 'invalid_json' }, 400, cors);
       }
 
-      await env.SYNC_KV.put(code, text, { expirationTtl: TTL_SECONDS });
+      await env.SYNC_KV.put(key, text, { expirationTtl: TTL_SECONDS });
       return json({ ok: true }, 200, cors);
     }
 

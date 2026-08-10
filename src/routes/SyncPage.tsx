@@ -1,75 +1,78 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/i18n';
 import { useDeviceList, useSyncMeta } from '@/sync/useSyncState';
-import { enableSync, linkDevice, disconnectSync } from '@/sync/engine';
-import { canonicalToLinkUrl, canonicalToWords, wordsToCanonical } from '@/sync/code';
+import { connectSync, disconnectSync } from '@/sync/engine';
+import { buildJoinLink, parseJoinLinkParams } from '@/sync/identity';
 import { shortDeviceId } from '@/sync/deviceId';
 import { renderQrSvg } from '@/sync/qr';
+
+type FormError = 'sync.nameRequired' | 'sync.dobRequired' | 'sync.dobFuture' | 'sync.linkError';
 
 export function SyncPage() {
   const { t, lang } = useI18n();
   const meta = useSyncMeta();
   const devices = useDeviceList();
   const navigate = useNavigate();
-  const { code: scannedCode } = useParams<{ code?: string }>();
+  const [searchParams] = useSearchParams();
 
   const [busy, setBusy] = useState(false);
-  const [codeInput, setCodeInput] = useState('');
-  const [linkError, setLinkError] = useState<'sync.invalidCode' | 'sync.linkError' | null>(null);
+  const [nameInput, setNameInput] = useState('');
+  const [dobInput, setDobInput] = useState('');
+  const [formError, setFormError] = useState<FormError | null>(null);
+  const [notFoundNotice, setNotFoundNotice] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [autoLinking, setAutoLinking] = useState(false);
 
-  // Scanning the QR (or opening a shared sync link) lands here as /sync/:code —
-  // auto-link immediately so scanning is a one-step "instantly synced" action.
-  // Guarded against StrictMode's double-invoke and against clobbering a device
-  // that's already syncing under a different code (that needs an explicit
+  // Scanning the QR (or opening a shared sync link) lands here as
+  // /sync/join?name=...&dob=... — prefill and connect immediately, same
+  // one-step "instantly synced" directness as before. Guarded against
+  // StrictMode's double-invoke and against clobbering a device that's
+  // already syncing under a different identity (that needs an explicit
   // disconnect first, not a silent switch).
   const attempted = useRef(false);
   useEffect(() => {
-    if (!scannedCode || meta.enabled || attempted.current) {
-      if (scannedCode && meta.enabled) navigate('/sync', { replace: true });
+    const joinParams = parseJoinLinkParams(searchParams);
+    if (!joinParams || meta.enabled || attempted.current) {
+      if (joinParams && meta.enabled) navigate('/sync', { replace: true });
       return;
     }
     attempted.current = true;
-    const canonical = wordsToCanonical(scannedCode);
-    setCodeInput(canonical ? canonicalToWords(canonical, lang) : scannedCode);
-    setAutoLinking(true);
-    setLinkError(null);
-    void linkDevice(scannedCode).then((result) => {
-      setAutoLinking(false);
-      if (!result.ok) setLinkError(result.error === 'invalid_code' ? 'sync.invalidCode' : 'sync.linkError');
+    setNameInput(joinParams.name);
+    setDobInput(joinParams.dob);
+    setBusy(true);
+    setFormError(null);
+    void connectSync(joinParams).then((result) => {
+      setBusy(false);
+      if (!result.ok) setFormError('sync.linkError');
+      else setNotFoundNotice(!result.foundExisting);
       navigate('/sync', { replace: true });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scannedCode, meta.enabled]);
+  }, [searchParams, meta.enabled]);
 
-  const words = meta.code ? canonicalToWords(meta.code, lang) : '';
-  const linkUrl = meta.code ? canonicalToLinkUrl(meta.code) : '';
+  const linkUrl = meta.name && meta.dob ? buildJoinLink({ name: meta.name, dob: meta.dob }) : '';
   const qrSvg = useMemo(() => (linkUrl ? renderQrSvg(linkUrl) : ''), [linkUrl]);
 
-  const handleEnable = async () => {
-    setBusy(true);
-    try {
-      await enableSync();
-    } finally {
-      setBusy(false);
-    }
-  };
+  const handleConnect = async () => {
+    const name = nameInput.trim();
+    const dob = dobInput.trim();
+    if (!name) return setFormError('sync.nameRequired');
+    if (!dob) return setFormError('sync.dobRequired');
+    if (new Date(dob).getTime() > Date.now()) return setFormError('sync.dobFuture');
 
-  const handleLink = async () => {
     setBusy(true);
-    setLinkError(null);
+    setFormError(null);
     try {
-      const result = await linkDevice(codeInput);
-      if (!result.ok) setLinkError(result.error === 'invalid_code' ? 'sync.invalidCode' : 'sync.linkError');
+      const result = await connectSync({ name, dob });
+      if (!result.ok) setFormError('sync.linkError');
+      else setNotFoundNotice(!result.foundExisting);
     } finally {
       setBusy(false);
     }
   };
 
   const handleCopy = () => {
-    void navigator.clipboard.writeText(words);
+    void navigator.clipboard.writeText(linkUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -85,37 +88,37 @@ export function SyncPage() {
       <h1>{t('sync.title')}</h1>
 
       {!meta.enabled && (
-        <>
-          <section className="stats__block">
-            <p>{t('sync.disabledIntro')}</p>
-            <button className="btn btn--primary" onClick={() => void handleEnable()} disabled={busy}>
-              {busy ? t('sync.enabling') : t('sync.enable')}
-            </button>
-          </section>
-
-          <section className="stats__block">
-            <h2>{t('sync.haveCode')}</h2>
-            <div className="sync__linkRow">
+        <section className="stats__block">
+          <p>{t('sync.disabledIntro')}</p>
+          <div className="sync__form">
+            <label className="sync__field">
+              {t('sync.nameLabel')}
               <input
                 type="text"
                 className="sync__input"
-                value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value)}
-                placeholder={t('sync.codePlaceholder')}
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder={t('sync.namePlaceholder')}
               />
-              <button className="btn btn--primary" onClick={() => void handleLink()} disabled={busy || autoLinking || !codeInput.trim()}>
-                {busy || autoLinking ? t('sync.linking') : t('sync.link')}
-              </button>
-            </div>
-            {linkError && <p className="sync__error">{t(linkError)}</p>}
-          </section>
-        </>
+            </label>
+            <label className="sync__field">
+              {t('sync.dobLabel')}
+              <input type="date" className="sync__input" value={dobInput} onChange={(e) => setDobInput(e.target.value)} />
+            </label>
+            <button className="btn btn--primary" onClick={() => void handleConnect()} disabled={busy}>
+              {busy ? t('sync.connecting') : t('sync.connect')}
+            </button>
+          </div>
+          {formError && <p className="sync__error">{t(formError)}</p>}
+        </section>
       )}
 
-      {meta.enabled && meta.code && (
+      {meta.enabled && meta.secretHash && (
         <section className="stats__block sync__code-block">
-          <h2>{t('sync.yourCode')}</h2>
-          <div className="sync__code">{words}</div>
+          <h2>
+            {t('sync.syncedAs')}: {meta.name}
+          </h2>
+          {notFoundNotice && <p className="sync__notice">{t('sync.notFoundNotice')}</p>}
           <div className="settings__row">
             <button className="btn btn--ghost" onClick={handleCopy}>
               {copied ? t('sync.copied') : t('sync.copy')}

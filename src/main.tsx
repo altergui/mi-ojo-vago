@@ -23,7 +23,7 @@ const router = createHashRouter([
       { path: 'exercise/orthoptics', element: <OrthopticsExercise /> },
       { path: 'stats', element: <StatsPage /> },
       { path: 'sync', element: <SyncPage /> },
-      { path: 'sync/:code', element: <SyncPage /> },
+      { path: 'sync/join', element: <SyncPage /> },
     ],
   },
 ]);

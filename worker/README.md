@@ -1,18 +1,20 @@
 # mi-ojo-vago-sync worker
 
 Tiny, dependency-free Cloudflare Worker that stores/retrieves a JSON blob per sync
-code in Workers KV. No auth, no accounts — anyone with the code can read/write that
-code's blob. See `docs/superpowers/specs/2026-08-03-cross-device-sync-design.md` in
-the repo root for the full design.
+key in Workers KV. No auth, no accounts — anyone who derives the key can read/write
+that key's blob. The key is a SHA-256 hash of a normalized name + date of birth,
+computed client-side; this worker never sees the raw name/DOB, only the hash, so KV
+never holds personal data. See
+`docs/superpowers/specs/2026-08-07-sync-identity-secret-design.md` in the repo root
+for the full design (supersedes `2026-08-03-cross-device-sync-design.md`).
 
 ## Endpoints
 
-- `GET /sync/:code` → 200 + stored JSON, or 404
-- `PUT /sync/:code` → stores the request body (JSON, ≤ 50KB), 200 on success
+- `GET /sync/:key` → 200 + stored JSON, or 404
+- `PUT /sync/:key` → stores the request body (JSON, ≤ 50KB), 200 on success
 
-`:code` must match `^\d{1,3}-\d{1,3}-\d{3}$` (two wordlist indices + a 3-digit
-number — see `src/sync/code.ts` in the main app for how the human-readable words
-map to this).
+`:key` must match `^[0-9a-f]{64}$` (a SHA-256 hex digest — see
+`src/sync/identity.ts` in the main app for how it's derived from name + DOB).
 
 ## Deploy
 

@@ -5,7 +5,7 @@
  * directly for sync purposes.
  */
 import { getDeviceId, getDeviceLabel } from './deviceId';
-import { generateCanonicalCode, isValidCanonicalCode, wordsToCanonical } from './code';
+import { computeSecretHash } from './identity';
 import { pullBlob, pushBlob } from './client';
 import {
   clearSyncLocalState,
@@ -63,7 +63,7 @@ let syncing = false;
 
 /** Debounced pull-merge-push, for sparse/deliberate triggers (a settings change). */
 export function scheduleSync(): void {
-  if (!snapshot.meta.enabled || !snapshot.meta.code) return;
+  if (!snapshot.meta.enabled || !snapshot.meta.secretHash) return;
   dirty = true;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
@@ -79,7 +79,7 @@ export function scheduleSync(): void {
  */
 export async function syncNow(): Promise<void> {
   const meta = snapshot.meta;
-  if (!meta.enabled || !meta.code || syncing) return;
+  if (!meta.enabled || !meta.secretHash || syncing) return;
   syncing = true;
   try {
     await syncOnce(meta);
@@ -89,14 +89,14 @@ export async function syncNow(): Promise<void> {
 }
 
 async function syncOnce(meta: SyncMeta): Promise<void> {
-  if (!meta.code) return;
+  if (!meta.secretHash) return;
   const deviceId = getDeviceId();
   const settingsEnvelope = loadSettingsEnvelope();
   const ownStats = statsStore.get();
 
   let remote: SyncBlob | null = null;
   try {
-    remote = await pullBlob(meta.code);
+    remote = await pullBlob(meta.secretHash);
   } catch {
     // Pull failures are silent — we still push our local state below.
   }
@@ -135,7 +135,7 @@ async function syncOnce(meta: SyncMeta): Promise<void> {
     },
   };
 
-  const ok = await pushBlob(meta.code, blob);
+  const ok = await pushBlob(meta.secretHash, blob);
   dirty = !ok;
   if (ok) {
     const updatedMeta = { ...meta, lastSyncedAt: new Date().toISOString() };
@@ -144,30 +144,31 @@ async function syncOnce(meta: SyncMeta): Promise<void> {
   }
 }
 
-/** Enables sync on this device: generates a code (if none yet) and does an initial push. */
-export async function enableSync(): Promise<string> {
-  const code = snapshot.meta.code ?? generateCanonicalCode();
-  const meta: SyncMeta = { enabled: true, code, lastSyncedAt: null };
-  saveSyncMeta(meta);
-  setSnapshot({ meta });
-  await syncNow();
-  return code;
-}
-
-/** Links this device to an existing code (typed as words, in either language, or already canonical), pulling and merging its data in. */
-export async function linkDevice(input: string): Promise<{ ok: true } | { ok: false; error: 'invalid_code' | 'network' }> {
-  const canonical = isValidCanonicalCode(input) ? input : wordsToCanonical(input);
-  if (!canonical) return { ok: false, error: 'invalid_code' };
-
-  const meta: SyncMeta = { enabled: true, code: canonical, lastSyncedAt: null };
-  saveSyncMeta(meta);
-  setSnapshot({ meta });
+/**
+ * Connects this device using a name+DOB identity: derives the secret hash,
+ * saves it (plus the literal name/dob for display) to local meta, and syncs.
+ * `foundExisting` says whether a blob already existed under this hash — true
+ * means this device joined data pushed from elsewhere; false means either
+ * this is genuinely the first device for this identity, or the name/dob
+ * don't match what another device used (the UI surfaces this ambiguity as an
+ * informational notice, not an error — there's no way to tell them apart).
+ */
+export async function connectSync(
+  identity: { name: string; dob: string }
+): Promise<{ ok: true; foundExisting: boolean } | { ok: false; error: 'network' }> {
+  const secretHash = await computeSecretHash(identity.name, identity.dob);
+  let foundExisting: boolean;
   try {
-    await syncNow();
-    return { ok: true };
+    foundExisting = (await pullBlob(secretHash)) !== null;
   } catch {
     return { ok: false, error: 'network' };
   }
+
+  const meta: SyncMeta = { enabled: true, name: identity.name, dob: identity.dob, secretHash, lastSyncedAt: null };
+  saveSyncMeta(meta);
+  setSnapshot({ meta });
+  void syncNow();
+  return { ok: true, foundExisting };
 }
 
 /**
@@ -204,7 +205,7 @@ export function deviceLabelsFromSnapshot(snap: SyncSnapshot): Record<string, str
 /** Stops syncing. Leaves local settings/stats untouched — only clears sync bookkeeping. */
 export function disconnectSync(): void {
   clearSyncLocalState();
-  setSnapshot({ meta: { enabled: false, code: null, lastSyncedAt: null }, remoteDevices: {} });
+  setSnapshot({ meta: { enabled: false, name: null, dob: null, secretHash: null, lastSyncedAt: null }, remoteDevices: {} });
 }
 
 /**
@@ -221,7 +222,7 @@ export function disconnectSync(): void {
  *  - a retry on reconnect, for a push that failed while offline.
  */
 export function initSyncOnLoad(): void {
-  if (snapshot.meta.enabled && snapshot.meta.code) {
+  if (snapshot.meta.enabled && snapshot.meta.secretHash) {
     void syncNow();
   }
 

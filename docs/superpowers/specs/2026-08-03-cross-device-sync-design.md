@@ -1,5 +1,12 @@
 # Cross-device sync — design
 
+> **Superseded (2026-08-07):** the sync **code** (`## Sync code format`) and how a
+> device **enables/links** (`## UX`) described below were replaced by a name+DOB
+> derived secret — see
+> `docs/superpowers/specs/2026-08-07-sync-identity-secret-design.md`. The worker
+> architecture, data model, merge logic, and engine behavior described here are
+> otherwise still accurate.
+
 ## Goal
 
 Let a user carry their game settings and playtime stats between devices (e.g. phone +
