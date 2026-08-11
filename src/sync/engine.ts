@@ -19,7 +19,8 @@ import {
   type SyncMeta,
 } from './schema';
 import { capSessionsForPush, mergeConfig, reconcileOwnStats } from './merge';
-import { loadSettingsEnvelope, saveSettingsEnvelope } from '@/settings/store';
+import { loadSettingsEnvelope, saveSettingsEnvelope, saveGameplaySettings } from '@/settings/store';
+import { defaultGameplaySettings } from '@/engine/dichoptic';
 import { statsStore } from '@/stats/store';
 
 export interface SyncSnapshot {
@@ -101,6 +102,15 @@ async function syncOnce(meta: SyncMeta): Promise<void> {
     // Pull failures are silent — we still push our local state below.
   }
 
+  // logout/re-login/identity-switch can happen while the pull above is in
+  // flight (a 15s poll or debounced sync racing a click on "log out", say).
+  // If the identity this call started for is no longer the active one,
+  // abandon it here rather than reconciling stats for an identity that's no
+  // longer current — that would silently resurrect state a subsequent
+  // disconnectSync()/connectSync() call already meant to clear or replace.
+  // (Checked again below the push, for the same reason.)
+  if (snapshot.meta.secretHash !== meta.secretHash) return;
+
   const remoteOwnStats = remote?.stats.devices[deviceId]?.stats;
   const reconciledOwnStats = reconcileOwnStats(ownStats, remoteOwnStats);
   if (reconciledOwnStats !== ownStats) {
@@ -137,7 +147,11 @@ async function syncOnce(meta: SyncMeta): Promise<void> {
 
   const ok = await pushBlob(meta.secretHash, blob);
   dirty = !ok;
-  if (ok) {
+  // Same staleness check as above the pull, re-checked here: the push above
+  // is another await this identity could stop being current during (e.g. a
+  // logout that raced this call all the way to its last step). Writing
+  // `updatedMeta` unconditionally would re-enable a just-logged-out identity.
+  if (ok && snapshot.meta.secretHash === meta.secretHash) {
     const updatedMeta = { ...meta, lastSyncedAt: new Date().toISOString() };
     saveSyncMeta(updatedMeta);
     setSnapshot({ meta: updatedMeta });
@@ -189,6 +203,30 @@ export async function connectSync(
 }
 
 /**
+ * Registers a brand-new identity: this is a fresh account, so local stats
+ * and gameplay settings (contrast, difficulty, eye assignment) reset to
+ * zero/default before anything syncs — otherwise leftover local state from
+ * before registering (anonymous play, or whoever used this device/browser
+ * last) would get attributed to the new identity. Calibration is
+ * deliberately untouched: it's device-bound, not account-bound (see
+ * `@/calibration/store`).
+ *
+ * Both resets are synchronous, so they're guaranteed to land before
+ * `connectSync`'s internal `syncNow()` push fires — the very first push for
+ * this identity carries the zeroed/default state, not stale leftovers.
+ * Callers should only call this once they've confirmed (via `checkIdentity`
+ * + explicit user confirmation) that this really is a new registration, not
+ * a login to an existing identity — logging in must never reset anything.
+ */
+export async function registerSync(
+  identity: { name: string; dob: string }
+): Promise<{ ok: true; foundExisting: boolean } | { ok: false; error: 'network' }> {
+  statsStore.clear();
+  saveGameplaySettings(defaultGameplaySettings());
+  return connectSync(identity);
+}
+
+/**
  * All known devices for a device-list UI: this device first, then cached
  * remote ones sorted by most-recently-active. Self shows up even when sync
  * has never successfully completed (lastActiveAt null in that case).
@@ -219,9 +257,22 @@ export function deviceLabelsFromSnapshot(snap: SyncSnapshot): Record<string, str
   return labels;
 }
 
-/** Stops syncing. Leaves local settings/stats untouched — only clears sync bookkeeping. */
+/**
+ * Logs out: stops syncing and clears this device's LOCAL stats (so a shared
+ * device doesn't keep showing a previous person's numbers to whoever's next)
+ * — but deliberately does NOT push that zeroed state anywhere, so the
+ * account's real stats stay intact on the server and reappear on the next
+ * login. `deviceId`, calibration, and gameplay settings are all untouched:
+ * none of those stores are referenced here.
+ */
 export function disconnectSync(): void {
+  statsStore.clear();
   clearSyncLocalState();
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  dirty = false;
   setSnapshot({ meta: { enabled: false, name: null, dob: null, secretHash: null, lastSyncedAt: null }, remoteDevices: {} });
 }
 

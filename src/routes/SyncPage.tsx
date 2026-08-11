@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/i18n';
 import { useDeviceList, useSyncMeta } from '@/sync/useSyncState';
-import { checkIdentity, connectSync, disconnectSync } from '@/sync/engine';
+import { checkIdentity, connectSync, disconnectSync, registerSync } from '@/sync/engine';
 import { buildJoinLink, parseJoinLinkParams } from '@/sync/identity';
 import { shortDeviceId } from '@/sync/deviceId';
 import { renderQrSvg } from '@/sync/qr';
@@ -115,7 +115,7 @@ export function SyncPage() {
     setBusy(true);
     setFormError(null);
     try {
-      const result = await connectSync(pendingRegister);
+      const result = await registerSync(pendingRegister);
       if (!result.ok) setFormError('sync.linkError');
       else setPendingRegister(null);
     } finally {
@@ -189,7 +189,7 @@ export function SyncPage() {
             {t('sync.lastSynced')}: {meta.lastSyncedAt ? dateFmt(meta.lastSyncedAt) : t('sync.never')}
           </p>
           <button className="btn btn--danger" onClick={handleDisconnect}>
-            {t('sync.disconnect')}
+            {t('sync.logout')}
           </button>
         </section>
       )}

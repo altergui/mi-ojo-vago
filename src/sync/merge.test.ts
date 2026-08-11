@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { capSessionsForPush, mergeConfig, mergeForDisplay, reconcileOwnStats, zeroStats, SESSIONS_PUSH_CAP } from './merge';
 import type { StatsData, SessionRecord } from '@/stats/store';
-import type { DichopticSettings } from '@/engine/dichoptic';
+import type { GameplaySettings } from '@/engine/dichoptic';
 
 function stats(overrides: Partial<StatsData> = {}): StatsData {
   return { ...zeroStats(1), ...overrides };
@@ -18,7 +18,7 @@ function session(id: string, startedAt: string, durationMs = 60_000, deviceId = 
   };
 }
 
-const dummySettings = {} as DichopticSettings;
+const dummySettings = {} as GameplaySettings;
 
 describe('reconcileOwnStats', () => {
   it('returns local unchanged when there is no remote entry yet', () => {
@@ -139,8 +139,8 @@ describe('mergeConfig', () => {
   });
 
   it('picks whichever side has the newer updatedAt, wholesale', () => {
-    const local = { settings: { variant: 'filled' } as DichopticSettings, updatedAt: 100 };
-    const remote = { settings: { variant: 'hollow' } as DichopticSettings, updatedAt: 200 };
+    const local = { settings: { variant: 'filled' } as GameplaySettings, updatedAt: 100 };
+    const remote = { settings: { variant: 'hollow' } as GameplaySettings, updatedAt: 200 };
 
     expect(mergeConfig(local, remote)).toBe(remote);
     expect(mergeConfig(remote, local)).toBe(remote);

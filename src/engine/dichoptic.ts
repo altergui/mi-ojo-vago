@@ -50,6 +50,25 @@ export interface DichopticSettings {
   cyanEye: Eye;
 }
 
+/**
+ * The screen-color-calibration slice of DichopticSettings: bound to *this
+ * device* (localStorage, never synced), since it's a property of a specific
+ * screen's color rendering, not of a person's therapy progression. Survives
+ * register/login/logout — only an explicit recalibration changes it.
+ */
+export type Calibration = Pick<DichopticSettings, 'colorAlternatives' | 'color'>;
+
+/**
+ * Everything else: the account-level, cross-device-synced slice of
+ * DichopticSettings — a person's therapy progression (contrast, difficulty,
+ * eye assignment), which should follow them from device to device.
+ */
+export type GameplaySettings = Omit<DichopticSettings, 'colorAlternatives' | 'color'>;
+
+export function composeDichopticSettings(calibration: Calibration, gameplay: GameplaySettings): DichopticSettings {
+  return { ...calibration, ...gameplay };
+}
+
 /** Index of the high-contrast palette (white bg, true cyan/red eyes) within colorAlternatives. */
 export const PALETTE_HIGH_CONTRAST = 0;
 /** Index of the low-contrast palette (violet bg, navy/maroon eyes) within colorAlternatives. */
@@ -69,15 +88,24 @@ export const OPACITY_PERCENT: Record<string, number> = {
   '33': 20,
 };
 
-export function defaultDichopticSettings(): DichopticSettings {
+export function defaultCalibration(): Calibration {
   return {
     colorAlternatives: DEFAULT_COLOR_ALTERNATIVES.map((c) => [...c]),
     color: [...DEFAULT_COLOR_ALTERNATIVES[0]],
+  };
+}
+
+export function defaultGameplaySettings(): GameplaySettings {
+  return {
     opacity: ['FF', 'FF', 'FF', 'FF'],
     variantAlternatives: ['filled', 'hollow', 'hollowLine'],
     variant: 'filled',
     cyanEye: 'left',
   };
+}
+
+export function defaultDichopticSettings(): DichopticSettings {
+  return composeDichopticSettings(defaultCalibration(), defaultGameplaySettings());
 }
 
 /** Opacity byte -> percentage (100 if unknown). */

@@ -1,7 +1,7 @@
-import type { DichopticSettings } from '@/engine/dichoptic';
+import type { GameplaySettings } from '@/engine/dichoptic';
 import type { StatsData } from '@/stats/store';
 
-export const SYNC_SCHEMA_VERSION = 2 as const;
+export const SYNC_SCHEMA_VERSION = 3 as const;
 
 /** A device's stats plus enough to show it in a device list: a glanceable label and when it last pushed. */
 export interface SyncDeviceEntry {
@@ -13,11 +13,20 @@ export interface SyncDeviceEntry {
   stats: StatsData;
 }
 
-/** What's actually stored in KV under a sync key. */
+/**
+ * What's actually stored in KV under a sync key.
+ *
+ * `config.settings` is deliberately typed as GameplaySettings, not the full
+ * DichopticSettings — screen-color calibration is device-local (see
+ * `@/calibration/store`) and must never be part of this blob, so it can
+ * never sync/overwrite across a person's devices. (Bumped from schemaVersion
+ * 2: purely documentary, the worker stores blobs opaquely and doesn't branch
+ * on this value.)
+ */
 export interface SyncBlob {
   schemaVersion: typeof SYNC_SCHEMA_VERSION;
   config: {
-    settings: DichopticSettings;
+    settings: GameplaySettings;
     updatedAt: number;
   };
   stats: {

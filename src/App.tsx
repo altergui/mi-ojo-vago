@@ -1,5 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { IdentityBadge } from './components/IdentityBadge';
 import { useI18n } from './i18n';
+import { useSyncMeta } from './sync/useSyncState';
 
 const donationEmail = import.meta.env.VITE_DONATION_EMAIL as string | undefined;
 const donationPhone = import.meta.env.VITE_DONATION_PHONE as string | undefined;
@@ -8,6 +10,7 @@ const donationPhoneHref = donationPhone?.replace(/[^+\d]/g, '');
 export function App() {
   const { t, lang, setLang } = useI18n();
   const location = useLocation();
+  const meta = useSyncMeta();
   const isImmersive = location.pathname.startsWith('/play/') || location.pathname.startsWith('/exercise/');
 
   return (
@@ -20,12 +23,12 @@ export function App() {
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
             {t('nav.games')}
           </NavLink>
-          <NavLink to="/stats" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-            {t('nav.stats')}
-          </NavLink>
-          <NavLink to="/sync" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-            {t('nav.sync')}
-          </NavLink>
+          {meta.enabled && (
+            <NavLink to="/stats" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+              {t('nav.stats')}
+            </NavLink>
+          )}
+          <IdentityBadge />
           <button
             type="button"
             className="app__lang"

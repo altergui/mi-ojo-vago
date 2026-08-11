@@ -8,7 +8,6 @@ const STRINGS = {
     'app.tagline': 'Entrenamiento visual con anteojos anáglifos (rojo/cian) para el ojo vago (ambliopía).',
     'nav.games': 'Juegos',
     'nav.stats': 'Estadísticas',
-    'nav.sync': 'Sincronizar',
     'hub.about1':
       'Esta página gratuita ha sido posible gracias a un grupo de programadores con problemas visuales que trabajaron mano a mano con oftalmólogos y ortoptistas para desarrollarla. Si quiere colaborar aquí tiene más información. Solo deberá comprar alguno de los anteojos sugeridos al pie que son necesarios para los jueguitos.',
     'hub.about2':
@@ -83,6 +82,7 @@ const STRINGS = {
     'stats.export': 'Exportar JSON',
     'stats.clear': 'Borrar datos',
     'stats.clearConfirm': '¿Borrar todas las estadísticas? Esta acción no se puede deshacer.',
+    'stats.loginRequired': 'Iniciá sesión para ver tus estadísticas.',
     'stats.minutes': 'min',
     'stats.date': 'Fecha',
     'stats.duration': 'Duración',
@@ -110,8 +110,9 @@ const STRINGS = {
     'sync.scanHint': 'Escaneá este código QR, o escribí el mismo nombre y fecha de nacimiento en tu otro dispositivo.',
     'sync.lastSynced': 'Última sincronización',
     'sync.never': 'todavía no',
-    'sync.disconnect': 'Desconectar',
-    'sync.disconnectConfirm': '¿Desconectar este dispositivo? Se deja de sincronizar, pero tus datos locales se conservan.',
+    'sync.logout': 'Cerrar sesión',
+    'sync.disconnectConfirm':
+      '¿Cerrar sesión? Tus estadísticas locales en este dispositivo se borrarán, pero se conservan en el servidor y vuelven a aparecer si iniciás sesión de nuevo.',
     'sync.devices': 'Dispositivos',
     'sync.thisDevice': 'este dispositivo',
     'stats.deviceId': 'ID',
@@ -124,7 +125,6 @@ const STRINGS = {
     'app.tagline': 'Vision training with anaglyph (red/cyan) glasses for lazy eye (amblyopia).',
     'nav.games': 'Games',
     'nav.stats': 'Stats',
-    'nav.sync': 'Sync',
     'hub.about1':
       'This free website has been made possible thanks to a group of visually impaired programmers who worked hand in hand with ophthalmologists and orthoptists to develop it. If you would like to help, you can find more information here. All you have to do is buy one of the glasses suggested at the bottom, which are necessary for the games.',
     'hub.about2':
@@ -199,6 +199,7 @@ const STRINGS = {
     'stats.export': 'Export JSON',
     'stats.clear': 'Clear data',
     'stats.clearConfirm': 'Delete all statistics? This cannot be undone.',
+    'stats.loginRequired': 'Log in to see your stats.',
     'stats.minutes': 'min',
     'stats.date': 'Date',
     'stats.duration': 'Duration',
@@ -226,8 +227,9 @@ const STRINGS = {
     'sync.scanHint': 'Scan this QR code, or type the same name and date of birth on your other device.',
     'sync.lastSynced': 'Last synced',
     'sync.never': 'not yet',
-    'sync.disconnect': 'Disconnect',
-    'sync.disconnectConfirm': 'Disconnect this device? Syncing stops, but your local data is kept.',
+    'sync.logout': 'Log out',
+    'sync.disconnectConfirm':
+      "Log out? Your local stats on this device will be cleared, but they're preserved on the server and will come back if you log in again.",
     'sync.devices': 'Devices',
     'sync.thisDevice': 'this device',
     'stats.deviceId': 'ID',

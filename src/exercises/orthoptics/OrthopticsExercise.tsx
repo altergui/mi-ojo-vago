@@ -16,12 +16,14 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { saveCalibration } from '@/calibration/store';
+import { IdentityBadge } from '@/components/IdentityBadge';
 import { Modal } from '@/components/Modal';
 import { SettingsPanel } from '@/components/SettingsPanel';
-import { COLOR_INDEX, opacityToPercent, type DichopticSettings } from '@/engine/dichoptic';
+import { COLOR_INDEX, opacityToPercent, type Calibration, type GameplaySettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
-import { saveSettings } from '@/settings/store';
-import { useSettings } from '@/settings/useSettings';
+import { useDichopticSettings } from '@/settings/composed';
+import { saveGameplaySettings } from '@/settings/store';
 import { scheduleSync } from '@/sync/engine';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
 
@@ -82,14 +84,25 @@ export function OrthopticsExercise() {
   const isMobile = useIsMobile();
 
   const [prefs, setPrefs] = useState<OrthopticsPrefs>(() => loadOrthopticsPrefs());
-  const settings = useSettings();
+  const settings = useDichopticSettings();
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
   const [puntoA, setPuntoA] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
 
-  const handleApplySettings = (patch: Partial<DichopticSettings>) => {
-    saveSettings({ ...settings, ...patch });
+  const handleApplyCalibration = (patch: Partial<Calibration>) => {
+    saveCalibration({ colorAlternatives: settings.colorAlternatives, color: settings.color, ...patch });
+    // No scheduleSync() here — calibration is device-local and must never sync.
+  };
+
+  const handleApplyGameplay = (patch: Partial<GameplaySettings>) => {
+    saveGameplaySettings({
+      opacity: settings.opacity,
+      variantAlternatives: settings.variantAlternatives,
+      variant: settings.variant,
+      cyanEye: settings.cyanEye,
+      ...patch,
+    });
     scheduleSync();
   };
 
@@ -236,6 +249,7 @@ export function OrthopticsExercise() {
           <button className="btn btn--icon" onClick={goHome} aria-label={t('Centrar', 'Home')}>
             <img src={`${BASE}/home.png`} alt="" width={22} height={22} />
           </button>
+          <IdentityBadge />
         </div>
       </div>
 
@@ -306,7 +320,14 @@ export function OrthopticsExercise() {
         )}
       </p>
 
-      <SettingsPanel open={showSettings} settings={settings} onApply={handleApplySettings} onClose={() => setShowSettings(false)} />
+      <SettingsPanel
+        open={showSettings}
+        calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
+        gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
+        onApplyCalibration={handleApplyCalibration}
+        onApplyGameplay={handleApplyGameplay}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }

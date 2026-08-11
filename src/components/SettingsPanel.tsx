@@ -5,15 +5,20 @@ import {
   OPACITY_STEPS,
   PALETTE_HIGH_CONTRAST,
   PALETTE_LOW_CONTRAST,
-  type DichopticSettings,
+  type Calibration,
+  type GameplaySettings,
 } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
 import { Modal } from './Modal';
 
 interface Props {
   open: boolean;
-  settings: DichopticSettings;
-  onApply: (next: Partial<DichopticSettings>) => void;
+  /** Device-local screen calibration (never synced) — backs the palette/lightness section only. */
+  calibration: Calibration;
+  /** Account-level gameplay config (synced) — backs fill/contrast/eyes. */
+  gameplaySettings: GameplaySettings;
+  onApplyCalibration: (next: Partial<Calibration>) => void;
+  onApplyGameplay: (next: Partial<GameplaySettings>) => void;
   onClose: () => void;
 }
 
@@ -105,10 +110,10 @@ function lightnessRange(activeIdx: number, slot: 0 | 1 | 2): { min: number; max:
  * "red" spans anywhere from maroon to full red) without separate controls
  * per palette.
  */
-export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
+export function SettingsPanel({ open, calibration, gameplaySettings, onApplyCalibration, onApplyGameplay, onClose }: Props) {
   const { t } = useI18n();
-  const [draft, setDraft] = useState<DichopticSettings>(settings);
-  const [colorAlternatives, setColorAlternatives] = useState<string[][]>(settings.colorAlternatives);
+  const [draftGameplay, setDraftGameplay] = useState<GameplaySettings>(gameplaySettings);
+  const [colorAlternatives, setColorAlternatives] = useState<string[][]>(calibration.colorAlternatives);
   const [activeIdx, setActiveIdx] = useState(PALETTE_HIGH_CONTRAST);
   const [bgL, setBgL] = useState(0);
   const [cyanL, setCyanL] = useState(0);
@@ -129,19 +134,21 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
   // Re-sync whenever the panel is (re)opened.
   const [seenOpen, setSeenOpen] = useState(false);
   if (open && !seenOpen) {
-    setDraft(settings);
-    setColorAlternatives(settings.colorAlternatives);
+    setDraftGameplay(gameplaySettings);
+    setColorAlternatives(calibration.colorAlternatives);
     const idx =
-      settings.color[0].toUpperCase() === settings.colorAlternatives[PALETTE_LOW_CONTRAST][0].toUpperCase() ? PALETTE_LOW_CONTRAST : PALETTE_HIGH_CONTRAST;
-    selectPalette(idx, settings.colorAlternatives);
+      calibration.color[0].toUpperCase() === calibration.colorAlternatives[PALETTE_LOW_CONTRAST][0].toUpperCase()
+        ? PALETTE_LOW_CONTRAST
+        : PALETTE_HIGH_CONTRAST;
+    selectPalette(idx, calibration.colorAlternatives);
     setSeenOpen(true);
   } else if (!open && seenOpen) {
     setSeenOpen(false);
   }
 
-  const update = (patch: Partial<DichopticSettings>) => setDraft((d) => ({ ...d, ...patch }));
+  const update = (patch: Partial<GameplaySettings>) => setDraftGameplay((d) => ({ ...d, ...patch }));
   const setOpacity = (idx: number, byte: string) => {
-    const opacity = [...draft.opacity];
+    const opacity = [...draftGameplay.opacity];
     opacity[idx] = byte;
     update({ opacity });
   };
@@ -155,7 +162,8 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
 
   const apply = () => {
     const color = [...colorAlternatives[activeIdx]];
-    onApply({ color, colorAlternatives, opacity: draft.opacity, variant: draft.variant, cyanEye: draft.cyanEye });
+    onApplyCalibration({ color, colorAlternatives });
+    onApplyGameplay({ opacity: draftGameplay.opacity, variant: draftGameplay.variant, cyanEye: draftGameplay.cyanEye });
     onClose();
   };
 
@@ -180,10 +188,10 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
           <h3>{t('settings.palette')}</h3>
           <div className="palette-cards">
             {colorAlternatives.map((colors, i) => {
-              const cyanFirst = draft.cyanEye === 'left';
+              const cyanFirst = draftGameplay.cyanEye === 'left';
               const dots = [
-                { color: colors[1], opacity: draft.opacity[1], order: cyanFirst ? 1 : 2 },
-                { color: colors[2], opacity: draft.opacity[2], order: cyanFirst ? 2 : 1 },
+                { color: colors[1], opacity: draftGameplay.opacity[1], order: cyanFirst ? 1 : 2 },
+                { color: colors[2], opacity: draftGameplay.opacity[2], order: cyanFirst ? 2 : 1 },
               ];
               return (
                 <button
@@ -196,7 +204,7 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
                   {dots.map((dot, j) => (
                     <span
                       key={j}
-                      className={`palette-card__dot palette-card__dot--${draft.variant}`}
+                      className={`palette-card__dot palette-card__dot--${draftGameplay.variant}`}
                       style={{ order: dot.order, '--dot-color': `${dot.color}${dot.opacity}` } as CSSProperties}
                     />
                   ))}
@@ -252,8 +260,8 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
         <section>
           <h3>{t('settings.fill')}</h3>
           <div className="settings__row">
-            {settings.variantAlternatives.map((v) => (
-              <button key={v} className={`pill ${draft.variant === v ? 'is-selected' : ''}`} onClick={() => update({ variant: v })}>
+            {gameplaySettings.variantAlternatives.map((v) => (
+              <button key={v} className={`pill ${draftGameplay.variant === v ? 'is-selected' : ''}`} onClick={() => update({ variant: v })}>
                 <span className="pill__icon">{VARIANT_ICON[v]}</span>
                 {t(`variant.${v}`)}
               </button>
@@ -267,7 +275,7 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
             {OPACITY_STEPS.map((byte) => (
               <button
                 key={byte}
-                className={`contrast ${draft.opacity[1] === byte ? 'is-selected' : ''}`}
+                className={`contrast ${draftGameplay.opacity[1] === byte ? 'is-selected' : ''}`}
                 onClick={() => setOpacity(1, byte)}
               >
                 <span className="contrast__swatch" style={{ background: `#00FFFF${byte}` }} />
@@ -279,7 +287,7 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
             {OPACITY_STEPS.map((byte) => (
               <button
                 key={byte}
-                className={`contrast ${draft.opacity[2] === byte ? 'is-selected' : ''}`}
+                className={`contrast ${draftGameplay.opacity[2] === byte ? 'is-selected' : ''}`}
                 onClick={() => setOpacity(2, byte)}
               >
                 <span className="contrast__swatch" style={{ background: `#FF0000${byte}` }} />
@@ -292,10 +300,10 @@ export function SettingsPanel({ open, settings, onApply, onClose }: Props) {
         <section>
           <h3>{t('settings.eyes')}</h3>
           <div className="settings__row">
-            <button className={`pill ${draft.cyanEye === 'left' ? 'is-selected' : ''}`} onClick={() => update({ cyanEye: 'left' })}>
+            <button className={`pill ${draftGameplay.cyanEye === 'left' ? 'is-selected' : ''}`} onClick={() => update({ cyanEye: 'left' })}>
               {t('settings.left')}
             </button>
-            <button className={`pill ${draft.cyanEye === 'right' ? 'is-selected' : ''}`} onClick={() => update({ cyanEye: 'right' })}>
+            <button className={`pill ${draftGameplay.cyanEye === 'right' ? 'is-selected' : ''}`} onClick={() => update({ cyanEye: 'right' })}>
               {t('settings.right')}
             </button>
           </div>

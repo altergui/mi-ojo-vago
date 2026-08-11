@@ -11,7 +11,7 @@
  *    authoritative for themselves.
  */
 import type { ContrastBucket, SessionRecord, StatsData } from '@/stats/store';
-import type { DichopticSettings } from '@/engine/dichoptic';
+import type { GameplaySettings } from '@/engine/dichoptic';
 
 const SESSIONS_DISPLAY_CAP = 200;
 export const SESSIONS_PUSH_CAP = 50;
@@ -123,7 +123,7 @@ export function capSessionsForPush(stats: StatsData): StatsData {
 }
 
 export interface SyncedConfig {
-  settings: DichopticSettings;
+  settings: GameplaySettings;
   updatedAt: number;
 }
 

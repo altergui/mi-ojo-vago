@@ -39,12 +39,56 @@ describe('legacy pre-sync data (a bare DichopticSettings blob, no envelope)', ()
   });
 });
 
-describe('saveSettings', () => {
+describe('legacy full DichopticSettings (calibration fields bundled in)', () => {
+  it('drops colorAlternatives/color, keeping only the gameplay fields', async () => {
+    stubLocalStorage({
+      'miojovago.settings.global': JSON.stringify({
+        colorAlternatives: [['#000000', '#111111', '#222222', '#333333']],
+        color: ['#000000', '#111111', '#222222', '#333333'],
+        opacity: ['CC', 'CC', 'CC', 'CC'],
+        variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+        variant: 'hollow',
+        cyanEye: 'right',
+      }),
+    });
+    const { loadSettingsEnvelope } = await import('./store');
+    const settings = loadSettingsEnvelope().settings as Record<string, unknown>;
+    expect(settings).not.toHaveProperty('colorAlternatives');
+    expect(settings).not.toHaveProperty('color');
+    expect(settings.variant).toBe('hollow');
+    expect(settings.cyanEye).toBe('right');
+  });
+
+  it('same, when wrapped in the (pre-split) envelope shape', async () => {
+    stubLocalStorage({
+      'miojovago.settings.global': JSON.stringify({
+        schemaVersion: 1,
+        updatedAt: 12345,
+        settings: {
+          colorAlternatives: [['#000000', '#111111', '#222222', '#333333']],
+          color: ['#000000', '#111111', '#222222', '#333333'],
+          opacity: ['FF', 'FF', 'FF', 'FF'],
+          variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+          variant: 'filled',
+          cyanEye: 'left',
+        },
+      }),
+    });
+    const { loadSettingsEnvelope } = await import('./store');
+    const envelope = loadSettingsEnvelope();
+    const settings = envelope.settings as Record<string, unknown>;
+    expect(settings).not.toHaveProperty('colorAlternatives');
+    expect(settings).not.toHaveProperty('color');
+    expect(envelope.updatedAt).toBe(12345);
+  });
+});
+
+describe('saveGameplaySettings', () => {
   it('bumps updatedAt to now on an explicit edit', async () => {
     stubLocalStorage();
-    const { loadSettingsEnvelope, saveSettings } = await import('./store');
+    const { loadSettingsEnvelope, saveGameplaySettings } = await import('./store');
     const before = Date.now();
-    saveSettings(loadSettingsEnvelope().settings);
+    saveGameplaySettings(loadSettingsEnvelope().settings);
     expect(loadSettingsEnvelope().updatedAt).toBeGreaterThanOrEqual(before);
   });
 });

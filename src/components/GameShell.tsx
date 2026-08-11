@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { DichopticSettings } from '@/engine/dichoptic';
+import { calibrationStore, saveCalibration } from '@/calibration/store';
+import type { Calibration, DichopticSettings, GameplaySettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
-import { loadSettings, saveSettings, settingsStore } from '@/settings/store';
+import { loadDichopticSettings } from '@/settings/composed';
+import { saveGameplaySettings, settingsStore } from '@/settings/store';
 import { useTrainingRecorder } from '@/stats/useTrainingRecorder';
 import { scheduleSync } from '@/sync/engine';
 import type { GameController, GameDefinition, GameState, InputAction, ScoreInfo } from '@/games/types';
+import { IdentityBadge } from './IdentityBadge';
 import { Modal } from './Modal';
 import { SettingsPanel } from './SettingsPanel';
 import { TouchControls } from './TouchControls';
@@ -26,7 +29,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
   const [controller, setController] = useState<GameController | null>(null);
   const [score, setScore] = useState<ScoreInfo>(EMPTY_SCORE);
   const [state, setState] = useState<GameState>(EMPTY_STATE);
-  const [settings, setSettings] = useState<DichopticSettings>(() => loadSettings());
+  const [settings, setSettings] = useState<DichopticSettings>(() => loadDichopticSettings());
 
   const [started, setStarted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -38,7 +41,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
   useEffect(() => {
     const board = boardRef.current;
     if (!board) return;
-    const initial = loadSettings();
+    const initial = loadDichopticSettings();
     const game = def.create({
       board,
       nextCanvas: def.hasPreview ? nextRef.current : null,
@@ -75,15 +78,24 @@ export function GameShell({ def }: { def: GameDefinition }) {
 
   useTrainingRecorder(controller, def.id, () => gameRef.current?.getScore().points);
 
-  // Reflect settings changes that arrive from elsewhere — another game's settings
-  // panel (settings are global) or a cross-device sync merge — into the live
-  // controller, not just on next mount. Redundant but harmless when the change
-  // originated from this component's own handleApplySettings below.
+  // Reflect settings/calibration changes that arrive from elsewhere — another
+  // game's settings panel (both stores are global to this device/account) or
+  // a cross-device sync merge of gameplay settings — into the live
+  // controller, not just on next mount. Redundant but harmless when the
+  // change originated from this component's own handleApplyCalibration/
+  // handleApplyGameplay below.
   useEffect(() => {
-    return settingsStore.subscribe((envelope) => {
-      gameRef.current?.applySettings(envelope.settings);
-      setSettings(gameRef.current?.getSettings() ?? envelope.settings);
-    });
+    const apply = () => {
+      const full = loadDichopticSettings();
+      gameRef.current?.applySettings(full);
+      setSettings(gameRef.current?.getSettings() ?? full);
+    };
+    const offSettings = settingsStore.subscribe(apply);
+    const offCalibration = calibrationStore.subscribe(apply);
+    return () => {
+      offSettings();
+      offCalibration();
+    };
   }, []);
 
   // The overlay button doubles as "start" (first play) and "resume" (after a
@@ -96,13 +108,23 @@ export function GameShell({ def }: { def: GameDefinition }) {
 
   const doInput = useCallback((action: InputAction) => gameRef.current?.input(action), []);
 
-  const handleApplySettings = (patch: Partial<DichopticSettings>) => {
+  const handleApplyCalibration = (patch: Partial<Calibration>) => {
     const game = gameRef.current;
     if (!game) return;
     game.applySettings(patch);
     const full = game.getSettings();
     setSettings(full);
-    saveSettings(full);
+    saveCalibration({ colorAlternatives: full.colorAlternatives, color: full.color });
+    // No scheduleSync() here — calibration is device-local and must never sync.
+  };
+
+  const handleApplyGameplay = (patch: Partial<GameplaySettings>) => {
+    const game = gameRef.current;
+    if (!game) return;
+    game.applySettings(patch);
+    const full = game.getSettings();
+    setSettings(full);
+    saveGameplaySettings({ opacity: full.opacity, variantAlternatives: full.variantAlternatives, variant: full.variant, cyanEye: full.cyanEye });
     scheduleSync();
   };
 
@@ -170,6 +192,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
           <button className="btn btn--icon" onClick={openMenu} aria-label={t('shell.menu')}>
             ☰
           </button>
+          <IdentityBadge />
         </div>
       </div>
 
@@ -261,7 +284,14 @@ export function GameShell({ def }: { def: GameDefinition }) {
         )}
       </Modal>
 
-      <SettingsPanel open={showSettings} settings={settings} onApply={handleApplySettings} onClose={() => setShowSettings(false)} />
+      <SettingsPanel
+        open={showSettings}
+        calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
+        gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
+        onApplyCalibration={handleApplyCalibration}
+        onApplyGameplay={handleApplyGameplay}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }

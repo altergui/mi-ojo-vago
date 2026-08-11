@@ -143,6 +143,20 @@ a {
   font-weight: 700;
   cursor: pointer;
 }
+/* The persistent top-right login/name indicator — shown in the main nav and
+   inside every game/exercise topbar, so "logged in" is always verifiable at
+   a glance. Uses theme custom properties (not hardcoded colors) so it reads
+   correctly in both the light non-immersive header and the dark in-game
+   topbars without a separate override per context. */
+.identity-badge {
+  background: var(--bg-elev2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.25rem 0.6rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .app__main {
   flex: 1 1 auto;
   min-height: 0;
