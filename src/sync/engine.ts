@@ -145,13 +145,30 @@ async function syncOnce(meta: SyncMeta): Promise<void> {
 }
 
 /**
+ * Checks whether an identity already has data on the server, WITHOUT
+ * creating anything — no local meta is saved, nothing is pushed. Lets the UI
+ * ask "log in" vs "register, are you sure?" before committing to either.
+ */
+export async function checkIdentity(
+  identity: { name: string; dob: string }
+): Promise<{ ok: true; exists: boolean } | { ok: false; error: 'network' }> {
+  const secretHash = await computeSecretHash(identity.name, identity.dob);
+  try {
+    const exists = (await pullBlob(secretHash)) !== null;
+    return { ok: true, exists };
+  } catch {
+    return { ok: false, error: 'network' };
+  }
+}
+
+/**
  * Connects this device using a name+DOB identity: derives the secret hash,
  * saves it (plus the literal name/dob for display) to local meta, and syncs.
  * `foundExisting` says whether a blob already existed under this hash — true
- * means this device joined data pushed from elsewhere; false means either
- * this is genuinely the first device for this identity, or the name/dob
- * don't match what another device used (the UI surfaces this ambiguity as an
- * informational notice, not an error — there's no way to tell them apart).
+ * means this device joined data pushed from elsewhere; false means this is
+ * the first device for this identity (a fresh registration). Most callers
+ * decide which case they're in with `checkIdentity` *before* calling this,
+ * so they can ask the user first rather than creating on a whim.
  */
 export async function connectSync(
   identity: { name: string; dob: string }
