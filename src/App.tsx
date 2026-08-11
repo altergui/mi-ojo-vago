@@ -1,6 +1,10 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useI18n } from './i18n';
 
+const donationEmail = import.meta.env.VITE_DONATION_EMAIL as string | undefined;
+const donationPhone = import.meta.env.VITE_DONATION_PHONE as string | undefined;
+const donationPhoneHref = donationPhone?.replace(/[^+\d]/g, '');
+
 export function App() {
   const { t, lang, setLang } = useI18n();
   const location = useLocation();
@@ -39,10 +43,14 @@ export function App() {
         <footer className="site-footer">
           <div className="site-footer__inner">
             <span>{t('footer.copyright')}</span>
-            <span className="site-footer__donations">
-              {t('footer.donationsLabel')} <a href="mailto:REDACTED_EMAIL">REDACTED_EMAIL</a> ·{' '}
-              <a href="tel:REDACTED_PHONE">REDACTED_PHONE</a>
-            </span>
+            {(donationEmail || donationPhone) && (
+              <span className="site-footer__donations">
+                {t('footer.donationsLabel')}{' '}
+                {donationEmail && <a href={`mailto:${donationEmail}`}>{donationEmail}</a>}
+                {donationEmail && donationPhone && ' · '}
+                {donationPhone && <a href={`tel:${donationPhoneHref}`}>{donationPhone}</a>}
+              </span>
+            )}
           </div>
         </footer>
       )}

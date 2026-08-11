@@ -60,6 +60,9 @@ npm run preview    # serve the build
 npm run typecheck
 ```
 
+Copy `.env.example` to `.env.local` and set `VITE_DONATION_EMAIL` /
+`VITE_DONATION_PHONE` to show the donations line in the footer (both optional).
+
 ## Attribution & disclaimer
 
 See [`NOTICE.md`](./NOTICE.md). Original games © 2022 Guilad Gonen (MIT).
