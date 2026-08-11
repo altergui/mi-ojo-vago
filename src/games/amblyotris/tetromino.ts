@@ -51,11 +51,13 @@ export function newTetrominoO(variant: PointVariant, color: string): Tetromino {
 }
 
 export function newTetrominoI(variant: PointVariant, color: string): Tetromino {
+  // I has 180°-rotational symmetry, so it only has 2 distinct visual states
+  // (horizontal/vertical). A 4th-state layout previously offset the shape by
+  // one cell on every other rotation, making it drift instead of toggling in
+  // place between the same 2 orientations.
   return new Tetromino([
     [P(-1, 0, variant, color), P(0, 0, variant, color), P(1, 0, variant, color), P(2, 0, variant, color)],
     [P(0, -1, variant, color), P(0, 0, variant, color), P(0, 1, variant, color), P(0, 2, variant, color)],
-    [P(-1, 1, variant, color), P(0, 1, variant, color), P(1, 1, variant, color), P(2, 1, variant, color)],
-    [P(1, -1, variant, color), P(1, 0, variant, color), P(1, 1, variant, color), P(1, 2, variant, color)],
   ]);
 }
 
@@ -78,20 +80,18 @@ export function newTetrominoJ(variant: PointVariant, color: string): Tetromino {
 }
 
 export function newTetrominoZ(variant: PointVariant, color: string): Tetromino {
+  // Same 180°-symmetry deal as I: only 2 distinct states, not 4.
   return new Tetromino([
     [P(-1, -1, variant, color), P(0, -1, variant, color), P(0, 0, variant, color), P(1, 0, variant, color)],
     [P(0, 1, variant, color), P(0, 0, variant, color), P(1, 0, variant, color), P(1, -1, variant, color)],
-    [P(-1, 0, variant, color), P(0, 0, variant, color), P(0, 1, variant, color), P(1, 1, variant, color)],
-    [P(-1, 1, variant, color), P(-1, 0, variant, color), P(0, 0, variant, color), P(0, -1, variant, color)],
   ]);
 }
 
 export function newTetrominoS(variant: PointVariant, color: string): Tetromino {
+  // Same 180°-symmetry deal as I: only 2 distinct states, not 4.
   return new Tetromino([
     [P(-1, 0, variant, color), P(0, 0, variant, color), P(0, -1, variant, color), P(1, -1, variant, color)],
     [P(0, -1, variant, color), P(0, 0, variant, color), P(1, 0, variant, color), P(1, 1, variant, color)],
-    [P(-1, 1, variant, color), P(0, 1, variant, color), P(0, 0, variant, color), P(1, 0, variant, color)],
-    [P(-1, -1, variant, color), P(-1, 0, variant, color), P(0, 0, variant, color), P(0, 1, variant, color)],
   ]);
 }
 

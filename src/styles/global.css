@@ -428,9 +428,10 @@ a {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   padding: 0.5rem;
   overflow: hidden;
 }
@@ -442,23 +443,21 @@ a {
      silently swallows clicks meant for the start/resume button underneath. */
   position: relative;
   isolation: isolate;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   aspect-ratio: 1 / 2;
   max-width: 100%;
   cursor: none;
 }
 .shell__side {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  /* Sits above the board (not floating over it or docked beside it) so the
+     "next" pieces are never obscured and don't steal horizontal space from
+     the board on narrow screens. */
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.4rem;
-  background: rgba(20, 20, 31, 0.6);
-  border-radius: 10px;
-  backdrop-filter: blur(2px);
+  padding: 0.3rem 0.5rem;
 }
 .shell__preview {
   width: 64px;
@@ -544,16 +543,6 @@ a {
 @media (pointer: fine) and (min-width: 720px) {
   .tc {
     display: none;
-  }
-  /* On desktop, dock the "next piece" preview right next to the board (as in
-     the dresiribarren reference) instead of floating it, absolutely
-     positioned, at the far edge of the whole stage — which reads as
-     disconnected from the board on wide viewports. Mobile keeps the
-     floating-overlay layout untouched. */
-  .shell__side {
-    position: static;
-    background: transparent;
-    backdrop-filter: none;
   }
 }
 

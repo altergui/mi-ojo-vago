@@ -174,7 +174,6 @@ export function GameShell({ def }: { def: GameDefinition }) {
       </div>
 
       <div className="shell__stage">
-        <div className="shell__board" ref={boardRef} style={{ aspectRatio: String(def.boardAspect) }} />
         {def.hasPreview && (
           <aside className="shell__side">
             <span className="hud__label">{t('shell.next')}</span>
@@ -182,6 +181,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
             <canvas ref={subNextRef} className="shell__preview" />
           </aside>
         )}
+        <div className="shell__board" ref={boardRef} style={{ aspectRatio: String(def.boardAspect) }} />
 
         {showResumeOverlay && (
           <button className="shell__overlay shell__overlay--btn" onClick={() => gameRef.current?.resume()}>
