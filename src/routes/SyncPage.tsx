@@ -157,17 +157,18 @@ export function SyncPage() {
               {t('sync.dobLabel')}
               <input type="date" className="sync__input" value={dobInput} onChange={(e) => editDob(e.target.value)} />
             </label>
-            {pendingRegister ? (
-              <button className="btn btn--primary" onClick={() => void handleRegister()} disabled={busy}>
-                {busy ? t('sync.registering') : t('sync.register')}
-              </button>
-            ) : (
-              <button className="btn btn--primary" onClick={() => void handleConnect()} disabled={busy}>
-                {busy ? t('sync.connecting') : t('sync.connect')}
-              </button>
+            <button className="btn btn--primary" onClick={() => void handleConnect()} disabled={busy || !!pendingRegister}>
+              {busy && !pendingRegister ? t('sync.connecting') : t('sync.connect')}
+            </button>
+            {pendingRegister && (
+              <>
+                <p className="sync__notice">{t('sync.registerPrompt')}</p>
+                <button className="btn btn--accent" onClick={() => void handleRegister()} disabled={busy}>
+                  {busy ? t('sync.registering') : t('sync.register')}
+                </button>
+              </>
             )}
           </div>
-          {pendingRegister && <p className="sync__notice">{t('sync.registerPrompt')}</p>}
           {formError && <p className="sync__error">{t(formError)}</p>}
         </section>
       )}
