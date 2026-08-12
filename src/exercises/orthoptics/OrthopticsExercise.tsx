@@ -7,9 +7,10 @@
  * readout. Uses discrete React state rather than the imperative
  * CanvasLayers/rAF engine the games use — there's no animation loop here.
  *
- * The source PNGs' colors are baked in, not canvas-drawn, so they'd
- * otherwise ignore eye-color calibration entirely; see tint.ts/useTintedSrc
- * for how they're recolored client-side to track it.
+ * The stimulus/marker shapes are vector-traced from the original pre-tinted
+ * PNGs (their colors were baked in, not canvas-drawn, so they'd otherwise
+ * ignore eye-color calibration entirely) — see silhouettes.ts/Silhouette
+ * for how they're recolored via a plain SVG `fill` to track it.
  *
  * Coordinate system: the original tracked absolute `offsetLeft`/`offsetTop`
  * against a one-time-captured DOM baseline (`fin`/`fim`). This port instead
@@ -29,8 +30,8 @@ import { useI18n } from '@/i18n';
 import { useDichopticSettings } from '@/settings/composed';
 import { saveGameplaySettings } from '@/settings/store';
 import { scheduleSync } from '@/sync/engine';
+import { Silhouette } from './Silhouette';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
-import { peekTintedImage, tintImage } from './tint';
 
 /** Below this width the exercise is unusable (fine pointer + precise fusion needed) — block with a modal instead. */
 const MOBILE_BREAKPOINT = 768;
@@ -45,42 +46,25 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
-/** Recolors a pre-tinted PNG to `color`, re-running whenever `src` or `color` changes. */
-function useTintedSrc(src: string, color: string): string {
-  const [tinted, setTinted] = useState(() => peekTintedImage(src, color) ?? src);
-  useEffect(() => {
-    // Fall back to the untinted original (correct shape, stale color) while the
-    // real tint resolves, rather than flashing the *previous* src's shape.
-    setTinted(peekTintedImage(src, color) ?? src);
-    let cancelled = false;
-    tintImage(src, color).then((url) => {
-      if (!cancelled) setTinted(url);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [src, color]);
-  return tinted;
-}
-
 const BASE = '/assets/orthoptics';
 
 interface StimulusDef {
   id: number;
   labelEs: string;
   labelEn: string;
+  /** Keys into SILHOUETTES (silhouettes.ts), not filenames. */
   red: string;
   cyan: string;
 }
 
 const STIMULI: StimulusDef[] = [
-  { id: 1, labelEs: 'Círculo', labelEn: 'Circle', red: 'cirR.png', cyan: 'cirA.png' },
-  { id: 2, labelEs: '1ª fusión [cara]', labelEn: '1st fusion [face]', red: 'cirR.png', cyan: 'face.png' },
-  { id: 3, labelEs: 'Sol', labelEn: 'Sun', red: 'solR.png', cyan: 'solA.png' },
-  { id: 4, labelEs: '2ª fusión [cruz]', labelEn: '2nd fusion [cross]', red: 'crossR.png', cyan: 'crossA.png' },
-  { id: 5, labelEs: 'Casa', labelEn: 'House', red: 'houseR.png', cyan: 'houseA.png' },
-  { id: 6, labelEs: 'Auto', labelEn: 'Car', red: 'carR.png', cyan: 'carA.png' },
-  { id: 7, labelEs: 'Estéreo', labelEn: 'Stereo', red: 'stereoR.png', cyan: 'stereoA.png' },
+  { id: 1, labelEs: 'Círculo', labelEn: 'Circle', red: 'cirR', cyan: 'cirA' },
+  { id: 2, labelEs: '1ª fusión [cara]', labelEn: '1st fusion [face]', red: 'cirR', cyan: 'face' },
+  { id: 3, labelEs: 'Sol', labelEn: 'Sun', red: 'solR', cyan: 'solA' },
+  { id: 4, labelEs: '2ª fusión [cruz]', labelEn: '2nd fusion [cross]', red: 'crossR', cyan: 'crossA' },
+  { id: 5, labelEs: 'Casa', labelEn: 'House', red: 'houseR', cyan: 'houseA' },
+  { id: 6, labelEs: 'Auto', labelEn: 'Car', red: 'carR', cyan: 'carA' },
+  { id: 7, labelEs: 'Estéreo', labelEn: 'Stereo', red: 'stereoR', cyan: 'stereoA' },
 ];
 
 const PIXEL = 0.66;
@@ -234,15 +218,6 @@ export function OrthopticsExercise() {
 
   const t = (esStr: string, enStr: string) => (es ? esStr : enStr);
 
-  const cyanColor = settings.color[COLOR_INDEX.cyan];
-  const redColor = settings.color[COLOR_INDEX.red];
-  // Called unconditionally (before the isMobile early return below) — isMobile
-  // can flip across renders, and these must stay stable per Rules of Hooks.
-  const redStimulusSrc = useTintedSrc(`${BASE}/${stim.red}`, redColor);
-  const cyanStimulusSrc = useTintedSrc(`${BASE}/${stim.cyan}`, cyanColor);
-  const leftMarkerSrc = useTintedSrc(`${BASE}/left.png`, redColor);
-  const rightMarkerSrc = useTintedSrc(`${BASE}/right.png`, cyanColor);
-
   if (isMobile) {
     return (
       <Modal open title={t('No disponible', 'Not available')} hideClose onClose={() => undefined}>
@@ -261,6 +236,8 @@ export function OrthopticsExercise() {
 
   const cyanContrast = opacityToPercent(settings.opacity[COLOR_INDEX.cyan]) / 100;
   const redContrast = opacityToPercent(settings.opacity[COLOR_INDEX.red]) / 100;
+  const cyanColor = settings.color[COLOR_INDEX.cyan];
+  const redColor = settings.color[COLOR_INDEX.red];
 
   return (
     <div className="shell shell--orthoptics" style={{ background: settings.color[0] }}>
@@ -315,29 +292,29 @@ export function OrthopticsExercise() {
       <div className="shell__stage">
         <div className="ortho__stage">
           {prefs.showMarkers && (
-            <img
-              src={leftMarkerSrc}
-              alt=""
+            <Silhouette
+              name="left"
+              color={redColor}
               className="ortho__marker"
               style={{ opacity: redContrast, transform: `translate(${offsetX}px, ${offsetY + 90}px)` }}
             />
           )}
-          <img
-            src={redStimulusSrc}
-            alt=""
+          <Silhouette
+            name={stim.red}
+            color={redColor}
             className="ortho__stimulus"
             style={{ opacity: redContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))` }}
           />
-          <img
-            src={cyanStimulusSrc}
-            alt=""
+          <Silhouette
+            name={stim.cyan}
+            color={cyanColor}
             className="ortho__stimulus"
             style={{ opacity: cyanContrast, transform: `translate(calc(-50% - ${offsetX}px), calc(-50% - ${offsetY}px))` }}
           />
           {prefs.showMarkers && (
-            <img
-              src={rightMarkerSrc}
-              alt=""
+            <Silhouette
+              name="right"
+              color={cyanColor}
               className="ortho__marker"
               style={{ opacity: cyanContrast, transform: `translate(${-offsetX}px, ${-offsetY + 120}px)` }}
             />
@@ -356,9 +333,10 @@ export function OrthopticsExercise() {
         open={showSettings}
         calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
         gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
-        // The stimuli are pre-tinted red/cyan PNGs, recolored on the fly (see
-        // useTintedSrc/tint.ts) to track eye-color calibration, but there's no
-        // dot/piece shape to vary — fill is still dead in this exercise.
+        // The stimuli are vector silhouettes (see Silhouette/silhouettes.ts)
+        // filled with the calibrated color directly, so eye-color calibration
+        // applies, but there's no dot/piece shape to vary — fill is still
+        // dead in this exercise.
         capabilities={{ fill: false }}
         onApplyCalibration={handleApplyCalibration}
         onApplyGameplay={handleApplyGameplay}
