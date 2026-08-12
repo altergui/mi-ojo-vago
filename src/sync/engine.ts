@@ -77,19 +77,26 @@ export function scheduleSync(): void {
  * Runs pull-merge-push immediately, once. A no-op if sync isn't enabled, or if
  * a sync is already in flight (the 15s poll, a reconnect, and an explicit
  * trigger could otherwise overlap).
+ *
+ * `reconcileOwn: false` skips max-merging local stats against the remote copy
+ * of this device before pushing — use this right after an intentional local
+ * wipe (`statsStore.clear()`), where the normal "never go backwards" merge
+ * would otherwise treat the fresh zeroes as data loss and resurrect the old
+ * numbers from the not-yet-overwritten remote copy.
  */
-export async function syncNow(): Promise<void> {
+export async function syncNow(opts: { reconcileOwn?: boolean } = {}): Promise<void> {
   const meta = snapshot.meta;
   if (!meta.enabled || !meta.secretHash || syncing) return;
   syncing = true;
   try {
-    await syncOnce(meta);
+    await syncOnce(meta, opts);
   } finally {
     syncing = false;
   }
 }
 
-async function syncOnce(meta: SyncMeta): Promise<void> {
+async function syncOnce(meta: SyncMeta, opts: { reconcileOwn?: boolean } = {}): Promise<void> {
+  const { reconcileOwn = true } = opts;
   if (!meta.secretHash) return;
   const deviceId = getDeviceId();
   const settingsEnvelope = loadSettingsEnvelope();
@@ -112,7 +119,7 @@ async function syncOnce(meta: SyncMeta): Promise<void> {
   if (snapshot.meta.secretHash !== meta.secretHash) return;
 
   const remoteOwnStats = remote?.stats.devices[deviceId]?.stats;
-  const reconciledOwnStats = reconcileOwnStats(ownStats, remoteOwnStats);
+  const reconciledOwnStats = reconcileOwn ? reconcileOwnStats(ownStats, remoteOwnStats) : ownStats;
   if (reconciledOwnStats !== ownStats) {
     statsStore.replace(reconciledOwnStats);
   }

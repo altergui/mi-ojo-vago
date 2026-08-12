@@ -51,9 +51,11 @@ export function StatsDashboard() {
   const clear = () => {
     if (confirm(t('stats.clearConfirm'))) {
       statsStore.clear();
-      // Push the zeroed state right away so a synced remote copy can't resurrect
-      // the deleted numbers on the next pull's max-reconciliation.
-      if (getSyncSnapshot().meta.enabled) void syncNow();
+      // Push the zeroed state right away, skipping the normal max-reconciliation
+      // against the remote copy of this device — otherwise the still-unpushed
+      // remote numbers would look like local data loss and get restored right
+      // back into the store we just cleared.
+      if (getSyncSnapshot().meta.enabled) void syncNow({ reconcileOwn: false });
     }
   };
 

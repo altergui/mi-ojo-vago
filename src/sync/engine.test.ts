@@ -147,6 +147,57 @@ describe('connectSync (login to an existing identity)', () => {
   });
 });
 
+describe('syncNow({ reconcileOwn: false }) — clearing stats while logged in', () => {
+  it('does not let a stale remote copy resurrect a local clear', async () => {
+    stubLocalStorage();
+    const { getDeviceId } = await import('./deviceId');
+    const deviceId = getDeviceId();
+
+    const client = await import('./client');
+    // The remote still has the pre-clear numbers — this device hasn't pushed
+    // the zeroed state yet.
+    (client.pullBlob as Mock).mockResolvedValue({
+      schemaVersion: 3,
+      config: { settings: {}, updatedAt: 0 },
+      stats: {
+        devices: {
+          [deviceId]: {
+            label: 'this-device',
+            lastActiveAt: Date.now(),
+            stats: { version: 1, totalMs: 20000, byDay: {}, byGame: {}, contrast: [], sessions: [], bestScore: {} },
+          },
+        },
+      },
+    });
+    (client.pushBlob as Mock).mockResolvedValue(true);
+
+    const { statsStore } = await import('@/stats/store');
+    const { defaultDichopticSettings } = await import('@/engine/dichoptic');
+    statsStore.addTraining('amblyotris', 20000, defaultDichopticSettings());
+
+    const { connectSync, syncNow } = await import('./engine');
+    await connectSync(IDENTITY);
+    await vi.waitFor(() => expect(statsStore.get().totalMs).toBe(20000));
+
+    statsStore.clear();
+    expect(statsStore.get().totalMs).toBe(0); // seeded
+
+    // connectSync's own fire-and-forget syncNow() may still be mid-flight (past
+    // the reconcile above but not yet through its push), which would make our
+    // call below a same-sync-in-progress no-op — retry until a push actually
+    // lands, rather than asserting on a specific await.
+    await vi.waitFor(async () => {
+      const before = (client.pushBlob as Mock).mock.calls.length;
+      await syncNow({ reconcileOwn: false });
+      expect((client.pushBlob as Mock).mock.calls.length).toBeGreaterThan(before);
+    });
+
+    expect(statsStore.get().totalMs).toBe(0); // stays cleared, not resurrected from the stale remote max
+    const pushedBlob = (client.pushBlob as Mock).mock.calls.at(-1)?.[1] as { stats: { devices: Record<string, { stats: { totalMs: number } }> } };
+    expect(pushedBlob.stats.devices[deviceId].stats.totalMs).toBe(0); // and the clear reaches the server too
+  });
+});
+
 describe('disconnectSync (logout)', () => {
   it('clears local stats without pushing anything', async () => {
     stubLocalStorage();
