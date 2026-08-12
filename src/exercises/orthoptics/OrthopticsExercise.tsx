@@ -7,6 +7,10 @@
  * readout. Uses discrete React state rather than the imperative
  * CanvasLayers/rAF engine the games use — there's no animation loop here.
  *
+ * The source PNGs' colors are baked in, not canvas-drawn, so they'd
+ * otherwise ignore eye-color calibration entirely; see tint.ts/useTintedSrc
+ * for how they're recolored client-side to track it.
+ *
  * Coordinate system: the original tracked absolute `offsetLeft`/`offsetTop`
  * against a one-time-captured DOM baseline (`fin`/`fim`). This port instead
  * tracks a signed pixel delta from center (`offsetX`/`offsetY`), which is
@@ -26,6 +30,7 @@ import { useDichopticSettings } from '@/settings/composed';
 import { saveGameplaySettings } from '@/settings/store';
 import { scheduleSync } from '@/sync/engine';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
+import { peekTintedImage, tintImage } from './tint';
 
 /** Below this width the exercise is unusable (fine pointer + precise fusion needed) — block with a modal instead. */
 const MOBILE_BREAKPOINT = 768;
@@ -38,6 +43,24 @@ function useIsMobile(): boolean {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   return isMobile;
+}
+
+/** Recolors a pre-tinted PNG to `color`, re-running whenever `src` or `color` changes. */
+function useTintedSrc(src: string, color: string): string {
+  const [tinted, setTinted] = useState(() => peekTintedImage(src, color) ?? src);
+  useEffect(() => {
+    // Fall back to the untinted original (correct shape, stale color) while the
+    // real tint resolves, rather than flashing the *previous* src's shape.
+    setTinted(peekTintedImage(src, color) ?? src);
+    let cancelled = false;
+    tintImage(src, color).then((url) => {
+      if (!cancelled) setTinted(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [src, color]);
+  return tinted;
 }
 
 const BASE = '/assets/orthoptics';
@@ -211,6 +234,15 @@ export function OrthopticsExercise() {
 
   const t = (esStr: string, enStr: string) => (es ? esStr : enStr);
 
+  const cyanColor = settings.color[COLOR_INDEX.cyan];
+  const redColor = settings.color[COLOR_INDEX.red];
+  // Called unconditionally (before the isMobile early return below) — isMobile
+  // can flip across renders, and these must stay stable per Rules of Hooks.
+  const redStimulusSrc = useTintedSrc(`${BASE}/${stim.red}`, redColor);
+  const cyanStimulusSrc = useTintedSrc(`${BASE}/${stim.cyan}`, cyanColor);
+  const leftMarkerSrc = useTintedSrc(`${BASE}/left.png`, redColor);
+  const rightMarkerSrc = useTintedSrc(`${BASE}/right.png`, cyanColor);
+
   if (isMobile) {
     return (
       <Modal open title={t('No disponible', 'Not available')} hideClose onClose={() => undefined}>
@@ -284,27 +316,27 @@ export function OrthopticsExercise() {
         <div className="ortho__stage">
           {prefs.showMarkers && (
             <img
-              src={`${BASE}/left.png`}
+              src={leftMarkerSrc}
               alt=""
               className="ortho__marker"
               style={{ opacity: redContrast, transform: `translate(${offsetX}px, ${offsetY + 90}px)` }}
             />
           )}
           <img
-            src={`${BASE}/${stim.red}`}
+            src={redStimulusSrc}
             alt=""
             className="ortho__stimulus"
             style={{ opacity: redContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))` }}
           />
           <img
-            src={`${BASE}/${stim.cyan}`}
+            src={cyanStimulusSrc}
             alt=""
             className="ortho__stimulus"
             style={{ opacity: cyanContrast, transform: `translate(calc(-50% - ${offsetX}px), calc(-50% - ${offsetY}px))` }}
           />
           {prefs.showMarkers && (
             <img
-              src={`${BASE}/right.png`}
+              src={rightMarkerSrc}
               alt=""
               className="ortho__marker"
               style={{ opacity: cyanContrast, transform: `translate(${-offsetX}px, ${-offsetY + 120}px)` }}
@@ -324,11 +356,10 @@ export function OrthopticsExercise() {
         open={showSettings}
         calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
         gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
-        // The stimuli are pre-tinted red/cyan PNGs (only their opacity is
-        // adjustable here, via settings.opacity) and there's no dot/piece
-        // shape to vary — eye-color calibration and fill are dead in this
-        // exercise.
-        capabilities={{ eyeCalibration: false, fill: false }}
+        // The stimuli are pre-tinted red/cyan PNGs, recolored on the fly (see
+        // useTintedSrc/tint.ts) to track eye-color calibration, but there's no
+        // dot/piece shape to vary — fill is still dead in this exercise.
+        capabilities={{ fill: false }}
         onApplyCalibration={handleApplyCalibration}
         onApplyGameplay={handleApplyGameplay}
         onClose={() => setShowSettings(false)}
