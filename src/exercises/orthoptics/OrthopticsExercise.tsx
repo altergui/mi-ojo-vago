@@ -324,6 +324,11 @@ export function OrthopticsExercise() {
         open={showSettings}
         calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
         gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
+        // The stimuli are pre-tinted red/cyan PNGs (only their opacity is
+        // adjustable here, via settings.opacity) and there's no dot/piece
+        // shape to vary — eye-color calibration and fill are dead in this
+        // exercise.
+        capabilities={{ eyeCalibration: false, fill: false }}
         onApplyCalibration={handleApplyCalibration}
         onApplyGameplay={handleApplyGameplay}
         onClose={() => setShowSettings(false)}

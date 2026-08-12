@@ -11,12 +11,32 @@ import {
 import { useI18n } from '@/i18n';
 import { Modal } from './Modal';
 
+/**
+ * Which sections of the panel a given caller's rendering actually respects.
+ * Not every game/exercise honors every dichoptic setting (see the per-game
+ * comments in `games/registry.ts`); showing a control with no visible effect
+ * just teaches players to distrust the settings screen, so callers opt out of
+ * whichever sections are dead for them. Everything defaults to visible — the
+ * background slider and palette switcher aren't listed here because every
+ * caller respects those.
+ */
+export interface SettingsCapabilities {
+  /** Cyan/red fine-calibration sliders. */
+  eyeCalibration?: boolean;
+  /** Per-eye contrast (opacity) buttons. */
+  contrast?: boolean;
+  /** Fill/variant pills (dot shape: filled/hollow/hollow-line). */
+  fill?: boolean;
+}
+
 interface Props {
   open: boolean;
   /** Device-local screen calibration (never synced) — backs the palette/lightness section only. */
   calibration: Calibration;
   /** Account-level gameplay config (synced) — backs fill/contrast/eyes. */
   gameplaySettings: GameplaySettings;
+  /** Defaults every section to visible; pass overrides for sections this caller's rendering doesn't respect. */
+  capabilities?: SettingsCapabilities;
   onApplyCalibration: (next: Partial<Calibration>) => void;
   onApplyGameplay: (next: Partial<GameplaySettings>) => void;
   onClose: () => void;
@@ -110,7 +130,8 @@ function lightnessRange(activeIdx: number, slot: 0 | 1 | 2): { min: number; max:
  * "red" spans anywhere from maroon to full red) without separate controls
  * per palette.
  */
-export function SettingsPanel({ open, calibration, gameplaySettings, onApplyCalibration, onApplyGameplay, onClose }: Props) {
+export function SettingsPanel({ open, calibration, gameplaySettings, capabilities = {}, onApplyCalibration, onApplyGameplay, onClose }: Props) {
+  const { eyeCalibration = true, contrast = true, fill = true } = capabilities;
   const { t } = useI18n();
   const [draftGameplay, setDraftGameplay] = useState<GameplaySettings>(gameplaySettings);
   const [colorAlternatives, setColorAlternatives] = useState<string[][]>(calibration.colorAlternatives);
@@ -213,34 +234,38 @@ export function SettingsPanel({ open, calibration, gameplaySettings, onApplyCali
             })}
           </div>
 
-          <label className="calib__row">
-            <span>{t('calib.cyan')}</span>
-            <input
-              type="range"
-              min={lightnessRange(activeIdx, 1).min}
-              max={lightnessRange(activeIdx, 1).max}
-              value={cyanL}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                setCyanL(v);
-                setSlot(1, v);
-              }}
-            />
-          </label>
-          <label className="calib__row">
-            <span>{t('calib.red')}</span>
-            <input
-              type="range"
-              min={lightnessRange(activeIdx, 2).min}
-              max={lightnessRange(activeIdx, 2).max}
-              value={redL}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                setRedL(v);
-                setSlot(2, v);
-              }}
-            />
-          </label>
+          {eyeCalibration && (
+            <label className="calib__row">
+              <span>{t('calib.cyan')}</span>
+              <input
+                type="range"
+                min={lightnessRange(activeIdx, 1).min}
+                max={lightnessRange(activeIdx, 1).max}
+                value={cyanL}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setCyanL(v);
+                  setSlot(1, v);
+                }}
+              />
+            </label>
+          )}
+          {eyeCalibration && (
+            <label className="calib__row">
+              <span>{t('calib.red')}</span>
+              <input
+                type="range"
+                min={lightnessRange(activeIdx, 2).min}
+                max={lightnessRange(activeIdx, 2).max}
+                value={redL}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setRedL(v);
+                  setSlot(2, v);
+                }}
+              />
+            </label>
+          )}
           <label className="calib__row">
             <span>{t('calib.background')}</span>
             <input
@@ -257,57 +282,49 @@ export function SettingsPanel({ open, calibration, gameplaySettings, onApplyCali
           </label>
         </section>
 
-        <section>
-          <h3>{t('settings.fill')}</h3>
-          <div className="settings__row">
-            {gameplaySettings.variantAlternatives.map((v) => (
-              <button key={v} className={`pill ${draftGameplay.variant === v ? 'is-selected' : ''}`} onClick={() => update({ variant: v })}>
-                <span className="pill__icon">{VARIANT_ICON[v]}</span>
-                {t(`variant.${v}`)}
-              </button>
-            ))}
-          </div>
-        </section>
+        {fill && (
+          <section>
+            <h3>{t('settings.fill')}</h3>
+            <div className="settings__row">
+              {gameplaySettings.variantAlternatives.map((v) => (
+                <button key={v} className={`pill ${draftGameplay.variant === v ? 'is-selected' : ''}`} onClick={() => update({ variant: v })}>
+                  <span className="pill__icon">{VARIANT_ICON[v]}</span>
+                  {t(`variant.${v}`)}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
-        <section>
-          <h3>{t('settings.contrast')}</h3>
-          <div className="settings__row settings__row--contrast">
-            {OPACITY_STEPS.map((byte) => (
-              <button
-                key={byte}
-                className={`contrast ${draftGameplay.opacity[1] === byte ? 'is-selected' : ''}`}
-                onClick={() => setOpacity(1, byte)}
-              >
-                <span className="contrast__swatch" style={{ background: `#00FFFF${byte}` }} />
-                {OPACITY_PERCENT[byte]}%
-              </button>
-            ))}
-          </div>
-          <div className="settings__row settings__row--contrast">
-            {OPACITY_STEPS.map((byte) => (
-              <button
-                key={byte}
-                className={`contrast ${draftGameplay.opacity[2] === byte ? 'is-selected' : ''}`}
-                onClick={() => setOpacity(2, byte)}
-              >
-                <span className="contrast__swatch" style={{ background: `#FF0000${byte}` }} />
-                {OPACITY_PERCENT[byte]}%
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h3>{t('settings.eyes')}</h3>
-          <div className="settings__row">
-            <button className={`pill ${draftGameplay.cyanEye === 'left' ? 'is-selected' : ''}`} onClick={() => update({ cyanEye: 'left' })}>
-              {t('settings.left')}
-            </button>
-            <button className={`pill ${draftGameplay.cyanEye === 'right' ? 'is-selected' : ''}`} onClick={() => update({ cyanEye: 'right' })}>
-              {t('settings.right')}
-            </button>
-          </div>
-        </section>
+        {contrast && (
+          <section>
+            <h3>{t('settings.contrast')}</h3>
+            <div className="settings__row settings__row--contrast">
+              {OPACITY_STEPS.map((byte) => (
+                <button
+                  key={byte}
+                  className={`contrast ${draftGameplay.opacity[1] === byte ? 'is-selected' : ''}`}
+                  onClick={() => setOpacity(1, byte)}
+                >
+                  <span className="contrast__swatch" style={{ background: `#00FFFF${byte}` }} />
+                  {OPACITY_PERCENT[byte]}%
+                </button>
+              ))}
+            </div>
+            <div className="settings__row settings__row--contrast">
+              {OPACITY_STEPS.map((byte) => (
+                <button
+                  key={byte}
+                  className={`contrast ${draftGameplay.opacity[2] === byte ? 'is-selected' : ''}`}
+                  onClick={() => setOpacity(2, byte)}
+                >
+                  <span className="contrast__swatch" style={{ background: `#FF0000${byte}` }} />
+                  {OPACITY_PERCENT[byte]}%
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </Modal>
   );

@@ -288,6 +288,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
         open={showSettings}
         calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
         gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
+        capabilities={def.settingsCapabilities}
         onApplyCalibration={handleApplyCalibration}
         onApplyGameplay={handleApplyGameplay}
         onClose={() => setShowSettings(false)}

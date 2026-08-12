@@ -1,3 +1,4 @@
+import type { SettingsCapabilities } from '@/components/SettingsPanel';
 import type { DichopticSettings } from '@/engine/dichoptic';
 import type { Emitter } from '@/engine/emitter';
 import type { StringKey } from '@/i18n';
@@ -69,5 +70,7 @@ export interface GameDefinition {
   hasPreview: boolean;
   /** Board aspect ratio as width / height (e.g. 0.5 for a 1:2 well). */
   boardAspect: number;
+  /** Which SettingsPanel sections this game's rendering respects — see SettingsCapabilities. */
+  settingsCapabilities?: SettingsCapabilities;
   create(opts: CreateGameOptions): GameController;
 }

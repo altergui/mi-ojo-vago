@@ -30,6 +30,10 @@ export const GAMES: GameDefinition[] = [
     controlScheme: 'paddle',
     hasPreview: false,
     boardAspect: 2 / 3,
+    // Paddle/ball/bricks are drawn with settings.color straight, with no
+    // settings.opacity/variant applied anywhere (see AmblyonoidGame.draw*) —
+    // contrast and fill are dead here.
+    settingsCapabilities: { contrast: false, fill: false },
     create: (opts) =>
       new AmblyonoidGame({
         board: opts.board,
@@ -45,6 +49,8 @@ export const GAMES: GameDefinition[] = [
     controlScheme: 'pointer',
     hasPreview: false,
     boardAspect: 0.75,
+    // No dot/piece shape to vary — BridgeDockGame never reads settings.variant.
+    settingsCapabilities: { fill: false },
     create: (opts) =>
       new BridgeDockGame({
         board: opts.board,
@@ -59,6 +65,8 @@ export const GAMES: GameDefinition[] = [
     controlScheme: 'glider',
     hasPreview: false,
     boardAspect: 4 / 3,
+    // No dot/piece shape to vary — FlyingBirdGame never reads settings.variant.
+    settingsCapabilities: { fill: false },
     create: (opts) =>
       new FlyingBirdGame({
         board: opts.board,
