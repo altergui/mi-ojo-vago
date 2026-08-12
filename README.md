@@ -63,6 +63,24 @@ npm run typecheck
 Copy `.env.example` to `.env.local` and set `VITE_DONATION_EMAIL` /
 `VITE_DONATION_PHONE` to show the donations line in the footer (both optional).
 
+## Deploys
+
+Two Cloudflare Workers (static-assets mode) deploy automatically via GitHub
+Actions (`.github/workflows/deploy.yml`):
+
+- **Production** — `mi-ojo-vago.guidev.org`, on every push to `main`.
+- **Dev preview** — `mi-ojo-vago-dev.guidev.org`, on every push to an open
+  pull request targeting `main`. It's a single shared slot, so it always
+  reflects whichever PR branch was pushed most recently — not per-PR.
+
+Both paths run `npm run build && npm test` as a gate first. To deploy either
+target by hand: `npm run build && npx wrangler deploy --config wrangler.jsonc`
+(prod) or `--config wrangler.dev.jsonc` (dev). Production can also be
+re-triggered manually from the Actions tab (`workflow_dispatch`).
+
+`worker/` (`mi-ojo-vago-sync`) is a separate Cloudflare Worker, deployed
+manually — not part of this CI.
+
 ## Attribution & disclaimer
 
 See [`NOTICE.md`](./NOTICE.md). Original games © 2022 Guilad Gonen (MIT).
