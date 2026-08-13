@@ -296,7 +296,7 @@ export function OrthopticsExercise() {
               name="left"
               color={redColor}
               className="ortho__marker"
-              style={{ opacity: redContrast, transform: `translate(${offsetX}px, ${offsetY + 90}px)` }}
+              style={{ opacity: redContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY + 65}px))` }}
             />
           )}
           <Silhouette
@@ -316,7 +316,7 @@ export function OrthopticsExercise() {
               name="right"
               color={cyanColor}
               className="ortho__marker"
-              style={{ opacity: cyanContrast, transform: `translate(${-offsetX}px, ${-offsetY + 120}px)` }}
+              style={{ opacity: cyanContrast, transform: `translate(calc(-50% + ${-offsetX}px), calc(-50% + ${-offsetY - 65}px))` }}
             />
           )}
         </div>
