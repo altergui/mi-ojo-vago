@@ -7,6 +7,11 @@
  * readout. Uses discrete React state rather than the imperative
  * CanvasLayers/rAF engine the games use — there's no animation loop here.
  *
+ * The stimulus/marker shapes are vector-traced from the original pre-tinted
+ * PNGs (their colors were baked in, not canvas-drawn, so they'd otherwise
+ * ignore eye-color calibration entirely) — see silhouettes.ts/Silhouette
+ * for how they're recolored via a plain SVG `fill` to track it.
+ *
  * Coordinate system: the original tracked absolute `offsetLeft`/`offsetTop`
  * against a one-time-captured DOM baseline (`fin`/`fim`). This port instead
  * tracks a signed pixel delta from center (`offsetX`/`offsetY`), which is
@@ -25,6 +30,7 @@ import { useI18n } from '@/i18n';
 import { useDichopticSettings } from '@/settings/composed';
 import { saveGameplaySettings } from '@/settings/store';
 import { scheduleSync } from '@/sync/engine';
+import { Silhouette } from './Silhouette';
 import { loadOrthopticsPrefs, saveOrthopticsPrefs, type OrthopticsPrefs } from './store';
 
 /** Below this width the exercise is unusable (fine pointer + precise fusion needed) — block with a modal instead. */
@@ -46,18 +52,19 @@ interface StimulusDef {
   id: number;
   labelEs: string;
   labelEn: string;
+  /** Keys into SILHOUETTES (silhouettes.ts), not filenames. */
   red: string;
   cyan: string;
 }
 
 const STIMULI: StimulusDef[] = [
-  { id: 1, labelEs: 'Círculo', labelEn: 'Circle', red: 'cirR.png', cyan: 'cirA.png' },
-  { id: 2, labelEs: '1ª fusión [cara]', labelEn: '1st fusion [face]', red: 'cirR.png', cyan: 'face.png' },
-  { id: 3, labelEs: 'Sol', labelEn: 'Sun', red: 'solR.png', cyan: 'solA.png' },
-  { id: 4, labelEs: '2ª fusión [cruz]', labelEn: '2nd fusion [cross]', red: 'crossR.png', cyan: 'crossA.png' },
-  { id: 5, labelEs: 'Casa', labelEn: 'House', red: 'houseR.png', cyan: 'houseA.png' },
-  { id: 6, labelEs: 'Auto', labelEn: 'Car', red: 'carR.png', cyan: 'carA.png' },
-  { id: 7, labelEs: 'Estéreo', labelEn: 'Stereo', red: 'stereoR.png', cyan: 'stereoA.png' },
+  { id: 1, labelEs: 'Círculo', labelEn: 'Circle', red: 'cirR', cyan: 'cirA' },
+  { id: 2, labelEs: '1ª fusión [cara]', labelEn: '1st fusion [face]', red: 'cirR', cyan: 'face' },
+  { id: 3, labelEs: 'Sol', labelEn: 'Sun', red: 'solR', cyan: 'solA' },
+  { id: 4, labelEs: '2ª fusión [cruz]', labelEn: '2nd fusion [cross]', red: 'crossR', cyan: 'crossA' },
+  { id: 5, labelEs: 'Casa', labelEn: 'House', red: 'houseR', cyan: 'houseA' },
+  { id: 6, labelEs: 'Auto', labelEn: 'Car', red: 'carR', cyan: 'carA' },
+  { id: 7, labelEs: 'Estéreo', labelEn: 'Stereo', red: 'stereoR', cyan: 'stereoA' },
 ];
 
 const PIXEL = 0.66;
@@ -229,6 +236,8 @@ export function OrthopticsExercise() {
 
   const cyanContrast = opacityToPercent(settings.opacity[COLOR_INDEX.cyan]) / 100;
   const redContrast = opacityToPercent(settings.opacity[COLOR_INDEX.red]) / 100;
+  const cyanColor = settings.color[COLOR_INDEX.cyan];
+  const redColor = settings.color[COLOR_INDEX.red];
 
   return (
     <div className="shell shell--orthoptics" style={{ background: settings.color[0] }}>
@@ -283,31 +292,31 @@ export function OrthopticsExercise() {
       <div className="shell__stage">
         <div className="ortho__stage">
           {prefs.showMarkers && (
-            <img
-              src={`${BASE}/left.png`}
-              alt=""
+            <Silhouette
+              name="left"
+              color={redColor}
               className="ortho__marker"
-              style={{ opacity: redContrast, transform: `translate(${offsetX}px, ${offsetY + 90}px)` }}
+              style={{ opacity: redContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY + 65}px))` }}
             />
           )}
-          <img
-            src={`${BASE}/${stim.red}`}
-            alt=""
+          <Silhouette
+            name={stim.red}
+            color={redColor}
             className="ortho__stimulus"
             style={{ opacity: redContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))` }}
           />
-          <img
-            src={`${BASE}/${stim.cyan}`}
-            alt=""
+          <Silhouette
+            name={stim.cyan}
+            color={cyanColor}
             className="ortho__stimulus"
             style={{ opacity: cyanContrast, transform: `translate(calc(-50% - ${offsetX}px), calc(-50% - ${offsetY}px))` }}
           />
           {prefs.showMarkers && (
-            <img
-              src={`${BASE}/right.png`}
-              alt=""
+            <Silhouette
+              name="right"
+              color={cyanColor}
               className="ortho__marker"
-              style={{ opacity: cyanContrast, transform: `translate(${-offsetX}px, ${-offsetY + 120}px)` }}
+              style={{ opacity: cyanContrast, transform: `translate(calc(-50% + ${-offsetX}px), calc(-50% + ${-offsetY - 65}px))` }}
             />
           )}
         </div>
@@ -324,11 +333,11 @@ export function OrthopticsExercise() {
         open={showSettings}
         calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
         gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
-        // The stimuli are pre-tinted red/cyan PNGs (only their opacity is
-        // adjustable here, via settings.opacity) and there's no dot/piece
-        // shape to vary — eye-color calibration and fill are dead in this
-        // exercise.
-        capabilities={{ eyeCalibration: false, fill: false }}
+        // The stimuli are vector silhouettes (see Silhouette/silhouettes.ts)
+        // filled with the calibrated color directly, so eye-color calibration
+        // applies, but there's no dot/piece shape to vary — fill is still
+        // dead in this exercise.
+        capabilities={{ fill: false }}
         onApplyCalibration={handleApplyCalibration}
         onApplyGameplay={handleApplyGameplay}
         onClose={() => setShowSettings(false)}
