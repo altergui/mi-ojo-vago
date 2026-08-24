@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { IdentityBadge } from './components/IdentityBadge';
+import { asset } from './assets';
 import { useI18n } from './i18n';
 import { useSyncMeta } from './sync/useSyncState';
 
@@ -17,7 +18,7 @@ export function App() {
     <div className="app" data-immersive={isImmersive}>
       <header className="app__header" data-immersive={isImmersive}>
         <Link to="/" className="app__brand">
-          <img className="app__logo" src="/assets/brand/logo.png" alt={t('app.title')} />
+          <img className="app__logo" src={asset('/brand/logo.png')} alt={t('app.title')} />
         </Link>
         <nav className="app__nav">
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : '')}>

@@ -65,18 +65,29 @@ Copy `.env.example` to `.env.local` and set `VITE_DONATION_EMAIL` /
 
 ## Deploys
 
-Two Cloudflare Workers (static-assets mode) deploy automatically via GitHub
-Actions (`.github/workflows/deploy.yml`):
+Three targets deploy automatically via GitHub Actions
+(`.github/workflows/deploy.yml`), all gated behind `npm run build && npm test`:
 
-- **Production** — `mi-ojo-vago.guidev.org`, on every push to `main`.
-- **Dev preview** — `mi-ojo-vago-dev.guidev.org`, on every push to an open
-  pull request targeting `main`. It's a single shared slot, so it always
-  reflects whichever PR branch was pushed most recently — not per-PR.
+- **Production** — `mi-ojo-vago.guidev.org` (Cloudflare Worker, static-assets
+  mode), on every push to `main`.
+- **Dev preview** — `mi-ojo-vago-dev.guidev.org` (Cloudflare Worker), on every
+  push to an open pull request targeting `main`. It's a single shared slot, so it
+  always reflects whichever PR branch was pushed most recently — not per-PR.
+- **Consulting-room staging** — `dresiribarren.com.ar/mi-ojo-vago-dev`, on every
+  push to an open PR. Uploaded over FTPS to the practice's cPanel hosting, which is
+  where production will eventually live. It serves its own PHP sync endpoint
+  (`public/sync.php`) instead of calling the Cloudflare Worker. Setup, constraints
+  and verification: [`docs/deploy-cpanel.md`](./docs/deploy-cpanel.md).
 
-Both paths run `npm run build && npm test` as a gate first. To deploy either
-target by hand: `npm run build && npx wrangler deploy --config wrangler.jsonc`
-(prod) or `--config wrangler.dev.jsonc` (dev). Production can also be
-re-triggered manually from the Actions tab (`workflow_dispatch`).
+The build is base-path aware: `VITE_BASE` sets the subdirectory a deploy is served
+from (the Cloudflare targets leave it unset and serve from the root). Runtime paths
+into `public/assets` must go through `asset()` (`src/assets.ts`) so they follow it —
+they're plain strings, so Vite can't rewrite them.
+
+To deploy a Cloudflare target by hand:
+`npm run build && npx wrangler deploy --config wrangler.jsonc` (prod) or
+`--config wrangler.dev.jsonc` (dev). Production can also be re-triggered manually
+from the Actions tab (`workflow_dispatch`).
 
 `worker/` (`mi-ojo-vago-sync`) is a separate Cloudflare Worker, deployed
 manually — not part of this CI.

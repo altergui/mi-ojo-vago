@@ -168,3 +168,45 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  deploy-hosting-dev:
+    name: Deploy staging (dresiribarren.com.ar/mi-ojo-vago-dev)
+    needs: build-and-test
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cpanel-deploy-dev
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          # Served from a subdirectory, so assets and the sync endpoint are
+          # resolved against this prefix rather than the domain root.
+          VITE_BASE: /mi-ojo-vago-dev/
+          VITE_SYNC_URL: /mi-ojo-vago-dev
+      - name: Mark staging noindex
+        # Staging only — public/.htaccess stays environment-agnostic so the same
+        # file can ship to production untouched.
+        run: |
+          cat >> dist/.htaccess <<'HTACCESS'
+
+          <IfModule mod_headers.c>
+            Header set X-Robots-Tag "noindex, nofollow"
+          </IfModule>
+          HTACCESS
+      - name: FTPS upload to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.CPANEL_FTP_HOST }}
+          username: ${{ secrets.CPANEL_FTP_USER }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          # The FTP account is chrooted to public_html/mi-ojo-vago-dev.
+          server-dir: ./

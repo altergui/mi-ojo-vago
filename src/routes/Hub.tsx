@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { asset } from '@/assets';
 import { GAMES } from '@/games/registry';
 import { useI18n } from '@/i18n';
 import { useStats } from '@/stats/useStats';
@@ -16,7 +17,7 @@ export function Hub() {
         <div className="hub__ortho">
           <article className="card">
             <div className="card__media">
-              <img src="/assets/orthoptics/logo.svg" alt={t('game.orthoptics.name')} loading="lazy" />
+              <img src={asset('/orthoptics/logo.svg')} alt={t('game.orthoptics.name')} loading="lazy" />
             </div>
             <div className="card__body">
               <h2>{t('game.orthoptics.name')}</h2>
@@ -67,7 +68,7 @@ export function Hub() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <img src="/assets/brand/glasses-piramide.jpeg" alt={t('hub.glasses.piramideName')} loading="lazy" />
+            <img src={asset('/brand/glasses-piramide.jpeg')} alt={t('hub.glasses.piramideName')} loading="lazy" />
             <span className="glasses-card__name">{t('hub.glasses.piramideName')}</span>
             <span className="btn btn--accent">{t('hub.glasses.seeMore')}</span>
           </a>
@@ -78,7 +79,7 @@ export function Hub() {
             rel="noopener noreferrer"
           >
             <img
-              src="/assets/brand/glasses-mercadolibre.webp"
+              src={asset('/brand/glasses-mercadolibre.webp')}
               alt={t('hub.glasses.mercadolibreName')}
               loading="lazy"
             />
@@ -90,7 +91,7 @@ export function Hub() {
 
       <section className="hub__mario">
         <div className="hub__mario-info">
-          <img src="/assets/brand/mario-cerrella.png" alt={t('hub.marioTitle')} className="hub__mario-photo" />
+          <img src={asset('/brand/mario-cerrella.png')} alt={t('hub.marioTitle')} className="hub__mario-photo" />
           <div className="hub__mario-body">
             <h3>{t('hub.marioTitle')}</h3>
             <a
@@ -104,7 +105,7 @@ export function Hub() {
           </div>
         </div>
         <img
-          src="/assets/brand/visual-training-screenshot.png"
+          src={asset('/brand/visual-training-screenshot.png')}
           alt={t('hub.marioVisualTraining')}
           className="hub__mario-screenshot"
         />

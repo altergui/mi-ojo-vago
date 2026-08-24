@@ -21,6 +21,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { asset } from '@/assets';
 import { saveCalibration } from '@/calibration/store';
 import { IdentityBadge } from '@/components/IdentityBadge';
 import { Modal } from '@/components/Modal';
@@ -46,7 +47,7 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
-const BASE = '/assets/orthoptics';
+const BASE = asset('/orthoptics');
 
 interface StimulusDef {
   id: number;

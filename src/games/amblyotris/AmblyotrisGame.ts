@@ -6,6 +6,7 @@
  * with the UI through a typed method API and an event emitter. All menus,
  * settings, calibration, HUD and overlays are owned by React.
  */
+import { asset } from '@/assets';
 import { CanvasLayers } from '@/engine/canvasLayers';
 import {
   defaultDichopticSettings,
@@ -127,7 +128,7 @@ export class AmblyotrisGame {
     if (this.nextCanvas) this.ctxNext = this.nextCanvas.getContext('2d');
     if (this.subNextCanvas) this.ctxSubNext = this.subNextCanvas.getContext('2d');
 
-    this.sounds = new SoundManager(opts.soundBasePath ?? '/assets/amblyotris', {
+    this.sounds = new SoundManager(opts.soundBasePath ?? asset('/amblyotris'), {
       background: { file: 'theme.mp3', loop: true },
       success: { file: 'success.wav' },
       denied: { file: 'denied.wav' },
