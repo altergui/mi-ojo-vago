@@ -2,6 +2,7 @@ import { AmblyotrisGame } from './amblyotris/AmblyotrisGame';
 import { AmblyonoidGame } from './amblyonoid/AmblyonoidGame';
 import { BridgeDockGame } from './bridgedock/BridgeDockGame';
 import { FlyingBirdGame } from './flyingbird/FlyingBirdGame';
+import { asset } from '@/assets';
 import type { GameController, GameDefinition } from './types';
 
 export const GAMES: GameDefinition[] = [
@@ -9,7 +10,7 @@ export const GAMES: GameDefinition[] = [
     id: 'amblyotris',
     nameKey: 'game.amblyotris.name',
     descKey: 'game.amblyotris.desc',
-    screenshot: '/assets/amblyotris/logo.png',
+    screenshot: asset('/amblyotris/logo.png'),
     controlScheme: 'tetris',
     hasPreview: true,
     boardAspect: 0.5,
@@ -19,14 +20,14 @@ export const GAMES: GameDefinition[] = [
         nextCanvas: opts.nextCanvas,
         subNextCanvas: opts.subNextCanvas,
         settings: opts.settings,
-        soundBasePath: '/assets/amblyotris',
+        soundBasePath: asset('/amblyotris'),
       }) as unknown as GameController,
   },
   {
     id: 'amblyonoid',
     nameKey: 'game.amblyonoid.name',
     descKey: 'game.amblyonoid.desc',
-    screenshot: '/assets/amblyonoid/logo.svg',
+    screenshot: asset('/amblyonoid/logo.svg'),
     controlScheme: 'paddle',
     hasPreview: false,
     boardAspect: 2 / 3,
@@ -38,14 +39,14 @@ export const GAMES: GameDefinition[] = [
       new AmblyonoidGame({
         board: opts.board,
         settings: opts.settings,
-        soundBasePath: '/assets/amblyotris',
+        soundBasePath: asset('/amblyotris'),
       }) as unknown as GameController,
   },
   {
     id: 'bridgedock',
     nameKey: 'game.bridgedock.name',
     descKey: 'game.bridgedock.desc',
-    screenshot: '/assets/bridgedock/logo.svg',
+    screenshot: asset('/bridgedock/logo.svg'),
     controlScheme: 'pointer',
     hasPreview: false,
     boardAspect: 0.75,
@@ -61,7 +62,7 @@ export const GAMES: GameDefinition[] = [
     id: 'flyingbird',
     nameKey: 'game.flyingbird.name',
     descKey: 'game.flyingbird.desc',
-    screenshot: '/assets/flyingbird/logo.svg',
+    screenshot: asset('/flyingbird/logo.svg'),
     controlScheme: 'glider',
     hasPreview: false,
     boardAspect: 4 / 3,

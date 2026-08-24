@@ -24,6 +24,7 @@
  * Restricted to `pointerType === 'mouse'` so it doesn't fight with the
  * touch up/down buttons (TouchControls' 'glider' scheme) on mobile.
  */
+import { asset } from '@/assets';
 import { CanvasLayers } from '@/engine/canvasLayers';
 import { defaultDichopticSettings, type DichopticSettings } from '@/engine/dichoptic';
 import { Emitter } from '@/engine/emitter';
@@ -115,7 +116,7 @@ export class FlyingBirdGame {
     this.layers.canvases.message.style.transition = 'opacity 0.3s ease';
     this.layers.canvases.message.style.opacity = '0';
 
-    this.sounds = new SoundManager(opts.soundBasePath ?? '/assets/flyingbird', {
+    this.sounds = new SoundManager(opts.soundBasePath ?? asset('/flyingbird'), {
       background: { file: 'theme.mp3', loop: true },
       denied: { file: 'denied.mp3' },
     });

@@ -21,6 +21,7 @@
  * the wrap-past-bottom check uses the board's actual bottom edge rather than
  * the source's hardcoded `yPosition > 600` pixel threshold.
  */
+import { asset } from '@/assets';
 import { CanvasLayers } from '@/engine/canvasLayers';
 import { defaultDichopticSettings, type DichopticSettings } from '@/engine/dichoptic';
 import { Emitter } from '@/engine/emitter';
@@ -103,7 +104,7 @@ export class BridgeDockGame {
     this.layers.canvases.message.style.opacity = '0';
     this.board.style.touchAction = 'none';
 
-    this.sounds = new SoundManager(opts.soundBasePath ?? '/assets/bridgedock', {
+    this.sounds = new SoundManager(opts.soundBasePath ?? asset('/bridgedock'), {
       background: { file: 'theme.mp3', loop: true },
       denied: { file: 'denied.mp3' },
     });

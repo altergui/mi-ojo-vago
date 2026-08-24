@@ -1,0 +1,19 @@
+# Reached as <base>/sync/<key> so src/sync/client.ts needs no PHP-specific URL
+# shape — see public/sync.php.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^sync/([0-9a-f]{64})$ sync.php?code=$1 [L,QSA]
+</IfModule>
+
+# State file the CI's FTP deploy action writes here to diff the next upload.
+<Files ".ftp-deploy-sync-state.json">
+  Require all denied
+</Files>
+
+# index.html names the content-hashed bundles, so a stale copy points at assets
+# that no longer exist. The hashed assets themselves stay cacheable.
+<IfModule mod_headers.c>
+  <Files "index.html">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </Files>
+</IfModule>

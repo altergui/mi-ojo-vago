@@ -13,6 +13,7 @@
  * on paddle (color[1]) vs ball (color[2]) instead — this is the core fidelity
  * fix over the previous from-scratch build, which colored bricks cyan/red.
  */
+import { asset } from '@/assets';
 import { CanvasLayers } from '@/engine/canvasLayers';
 import { defaultDichopticSettings, type DichopticSettings } from '@/engine/dichoptic';
 import { Emitter } from '@/engine/emitter';
@@ -435,7 +436,7 @@ export class AmblyonoidGame {
     this.layers.canvases.message.style.opacity = '0';
     this.board.style.touchAction = 'none';
 
-    this.sounds = new SoundManager(opts.soundBasePath ?? '/assets/amblyotris', {
+    this.sounds = new SoundManager(opts.soundBasePath ?? asset('/amblyotris'), {
       background: { file: 'theme.mp3', loop: true },
       success: { file: 'success.wav' },
       denied: { file: 'denied.wav' },
