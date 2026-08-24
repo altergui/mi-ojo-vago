@@ -70,6 +70,13 @@ Como app y endpoint comparten origen, **no hay CORS**. `public/.htaccess` mapea
 `<base>/sync/<key>` a `sync.php?code=<key>`, con lo cual `src/sync/client.ts` no necesita
 saber nada de PHP: alcanza con `VITE_SYNC_URL=/mi-ojo-vago-dev`.
 
+Una divergencia deliberada con el Worker: el rewrite es `^sync/([0-9a-f]{64})$`,
+así que una clave malformada nunca llega al PHP y el server devuelve **404**, donde el
+Worker devolvía 400. Se prefiere el filtro estricto — en un hosting compartido, que
+basura arbitraria no invoque PHP vale más que replicar un código de error que el cliente
+nunca produce (`src/sync/client.ts` solo manda hashes de 64 hex). La validación en
+`sync.php` se mantiene igual, para el caso de que alguien llame al script directo.
+
 El Worker de Cloudflare sigue intacto y atendiendo a los deploys de Cloudflare.
 
 ## Verificación post-deploy
@@ -89,7 +96,7 @@ curl -s -X PUT -H 'Content-Type: application/json' -d '{"v":1}' $BASE/sync/$C
 curl -s $BASE/sync/$C                                              # {"v":1}
 
 # Rechazos esperados:
-curl -s -o /dev/null -w '%{http_code}\n' $BASE/sync/nope           # 400
+curl -s -o /dev/null -w '%{http_code}\n' $BASE/sync/nope           # 404 (ver nota)
 curl -s -o /dev/null -w '%{http_code}\n' $BASE/.ftp-deploy-sync-state.json  # 403
 curl -s -o /dev/null -w '%{http_code}\n' https://dresiribarren.com.ar/sync-data-mi-ojo-vago-dev/  # 404
 
