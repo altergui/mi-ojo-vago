@@ -639,55 +639,247 @@ a {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-.palette-cards {
+
+/* The palette preview is the settings panel's whole canvas: it paints the
+   selected palette's real background and eye colours at their real opacities,
+   and every other control floats on top of it (map-style) instead of stacking
+   below it. Square at the panel's natural 440px width; the min-height keeps
+   the opacity dropdown inside the frame on narrow phones, where the square
+   would otherwise be too short for it. */
+.preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 400px;
+  border-radius: 14px;
+}
+.preview__eyes {
+  position: absolute;
+  top: 36px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+.preview__eye {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-}
-.palette-card {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 84px;
-  border-radius: 14px;
-  border: 3px solid var(--border);
-  cursor: pointer;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 2rem;
-  padding: 0.75rem;
+  gap: 10px;
+  width: 68px;
 }
-.palette-card.is-selected {
-  border-color: var(--primary);
-}
-.palette-card__dot {
-  width: 42px;
-  height: 42px;
+.preview__dot {
+  width: 64px;
+  height: 64px;
   border-radius: 10px;
-  box-sizing: border-box;
   position: relative;
 }
-.palette-card__dot--filled {
+.preview__dot--filled {
   background: var(--dot-color);
 }
-.palette-card__dot--hollow,
-.palette-card__dot--hollowLine {
+.preview__dot--hollow,
+.preview__dot--hollowLine {
   background: transparent;
-  border: 8px solid var(--dot-color);
+  border: 12px solid var(--dot-color);
 }
-.palette-card__dot--hollowLine::after {
+.preview__dot--hollowLine::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 6px;
+  width: 9px;
   height: 55%;
   background: var(--dot-color);
   transform: translate(-50%, -50%);
 }
-.pill,
-.contrast {
+/* Each eye's contrast reads as a value under its own square, not as a
+   separate row of buttons somewhere else in the panel. */
+.preview__pct {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 68px;
+  height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+/* Swallows the tap that dismisses an open popover, so tapping the preview
+   closes it the way tapping outside a menu normally does. */
+.preview__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+/* The dropdown wears the palette's own background so each step previews in
+   situ; its text colour is set inline from that background's lightness. */
+.opacity-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: 112px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+}
+.opacity-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 8px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.opacity-menu__item.is-selected {
+  border-color: var(--primary);
+}
+.opacity-menu__swatch {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+.opacity-menu__pct {
+  flex: 1;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+}
+/* Palette switcher, borrowed from a map's satellite/plain toggle: the
+   thumbnail always shows the palette you would switch *to*. */
+.preview__layers {
+  position: absolute;
+  left: 14px;
+  bottom: 16px;
+  z-index: 3;
+  width: 74px;
+  height: 74px;
+  padding: 3px;
+  border: none;
+  border-radius: 12px;
+  background: var(--bg-elev);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.preview__layers-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 68px;
+  height: 68px;
+  /* Reserves the caption strip's height so the dots centre in what is left
+     above it rather than in the whole tile. */
+  padding-bottom: 19px;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.preview__layers-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+.preview__layers-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 19px;
+  line-height: 19px;
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  text-align: center;
+}
+.preview__gear {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  color: var(--text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.preview__gear.is-open {
+  color: var(--primary);
+}
+/* An open dropdown is tall enough to reach the frame's bottom corners, where
+   these two live — on a narrow phone it would land right on top of them. They
+   step aside for as long as it is open. */
+.preview__layers,
+.preview__gear {
+  transition: opacity 0.12s ease;
+}
+.preview.has-menu .preview__layers,
+.preview.has-menu .preview__gear {
+  opacity: 0;
+  pointer-events: none;
+}
+/* Fine colour trim lives behind the gear: needed once per screen, not every
+   session, so it stays out of the way until asked for. */
+.calib-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 94px;
+  z-index: 2;
+  width: min(300px, calc(100% - 32px));
+  padding: 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.calib__row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: center;
+  gap: 12px;
+  height: 26px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.calib__row input {
+  width: 100%;
+  margin: 0;
+}
+.pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -699,47 +891,11 @@ a {
   cursor: pointer;
   font-size: 0.85rem;
 }
-.pill.is-selected,
-.contrast.is-selected {
+.pill.is-selected {
   border-color: var(--primary);
 }
 .pill__icon {
   font-size: 1.1rem;
-}
-.contrast__swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  border: 1px solid #0006;
-}
-.calib__row {
-  display: grid;
-  grid-template-columns: 90px 1fr;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 0.6rem 0;
-}
-.calib__row input {
-  width: 100%;
-}
-.settings__row--contrast {
-  flex-wrap: nowrap;
-  gap: 0.3rem;
-}
-.settings__row--contrast + .settings__row--contrast {
-  margin-top: 0.4rem;
-}
-.settings__row--contrast .contrast {
-  flex: 1 1 0;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.35rem 0.15rem;
-  font-size: 0.7rem;
-}
-.settings__row--contrast .contrast__swatch {
-  width: 16px;
-  height: 16px;
 }
 
 /* ---------- Stats ---------- */
