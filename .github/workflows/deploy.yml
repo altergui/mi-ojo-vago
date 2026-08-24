@@ -201,7 +201,9 @@ jobs:
           </IfModule>
           HTACCESS
       - name: FTPS upload to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        # Pinned to a commit SHA, not a tag: this is a third-party action and it
+        # receives the cPanel FTP credentials, so a moved tag would hand them over.
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
         with:
           server: ${{ secrets.CPANEL_FTP_HOST }}
           username: ${{ secrets.CPANEL_FTP_USER }}
