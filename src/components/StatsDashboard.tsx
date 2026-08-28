@@ -3,10 +3,8 @@ import { useI18n, type StringKey } from '@/i18n';
 import { statsStore, todayKey } from '@/stats/store';
 import { formatDuration, formatDurationShort } from '@/stats/format';
 import { getGame } from '@/games/registry';
-import { useGameplaySettings } from '@/settings/useSettings';
-import { saveGameplaySettings } from '@/settings/store';
 import { useSyncedStats } from '@/sync/useSyncedStats';
-import { getSyncSnapshot, scheduleSync, syncNow } from '@/sync/engine';
+import { clearAccountStats } from '@/sync/engine';
 import { useDeviceLabels } from '@/sync/useSyncState';
 import { shortDeviceId } from '@/sync/deviceId';
 
@@ -32,7 +30,6 @@ export function StatsDashboard() {
   const { t, lang } = useI18n();
   const stats = useSyncedStats();
   const deviceLabels = useDeviceLabels();
-  const gameplaySettings = useGameplaySettings();
 
   const days = useMemo(last7Days, []);
   const dayMax = Math.max(1, ...days.map((d) => stats.byDay[d] ?? 0));
@@ -52,25 +49,11 @@ export function StatsDashboard() {
   };
 
   const clear = () => {
+    // Clears stats for the whole account (every synced device), not just this
+    // one — see clearAccountStats for why a per-device clear isn't enough.
     if (confirm(t('stats.clearConfirm'))) {
-      statsStore.clear();
-      // Push the zeroed state right away, skipping the normal max-reconciliation
-      // against the remote copy of this device — otherwise the still-unpushed
-      // remote numbers would look like local data loss and get restored right
-      // back into the store we just cleared.
-      if (getSyncSnapshot().meta.enabled) void syncNow({ reconcileOwn: false });
+      void clearAccountStats();
     }
-  };
-
-  // Which eye wears the cyan lens has no effect on any game's rendering — every
-  // game/exercise draws cyan/red as fixed roles regardless of it (see
-  // games/registry.ts). Its one real effect is here: it decides which eye
-  // label ("izquierdo"/"derecho") future contrast buckets below get tagged
-  // with, so it's set from this page rather than a per-game settings panel
-  // where toggling it would visibly do nothing.
-  const setCyanEye = (cyanEye: 'left' | 'right') => {
-    saveGameplaySettings({ ...gameplaySettings, cyanEye });
-    scheduleSync();
   };
 
   const dateFmt = (iso: string) => new Date(iso).toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' });
@@ -125,21 +108,6 @@ export function StatsDashboard() {
 
       <section className="stats__block">
         <h2>{t('stats.byContrast')}</h2>
-        <div className="settings__row">
-          <span>{t('settings.eyes')}</span>
-          <button
-            className={`pill ${gameplaySettings.cyanEye === 'left' ? 'is-selected' : ''}`}
-            onClick={() => setCyanEye('left')}
-          >
-            {t('settings.left')}
-          </button>
-          <button
-            className={`pill ${gameplaySettings.cyanEye === 'right' ? 'is-selected' : ''}`}
-            onClick={() => setCyanEye('right')}
-          >
-            {t('settings.right')}
-          </button>
-        </div>
         {contrastSorted.length === 0 ? (
           <p className="muted">{t('common.none')}</p>
         ) : (

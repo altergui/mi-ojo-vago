@@ -48,7 +48,7 @@ describe('registerSync (new identity)', () => {
     expect(statsStore.get().totalMs).toBe(5000); // seeded
 
     const { saveGameplaySettings } = await import('@/settings/store');
-    saveGameplaySettings({ opacity: ['33', '33', 'FF', 'FF'], variantAlternatives: ['filled', 'hollow', 'hollowLine'], variant: 'hollow', cyanEye: 'right' });
+    saveGameplaySettings({ opacity: ['33', '33', 'FF', 'FF'], variantAlternatives: ['filled', 'hollow', 'hollowLine'], variant: 'hollow', cyanEye: 'right', redEyeConfigured: true });
 
     const { registerSync } = await import('./engine');
     const result = await registerSync(IDENTITY);
@@ -253,6 +253,7 @@ describe('disconnectSync (logout)', () => {
       variantAlternatives: ['filled', 'hollow', 'hollowLine'] as ('filled' | 'hollow' | 'hollowLine')[],
       variant: 'hollow' as const,
       cyanEye: 'right' as const,
+      redEyeConfigured: true,
     };
     saveGameplaySettings(gameplay);
 
@@ -262,6 +263,134 @@ describe('disconnectSync (logout)', () => {
 
     expect(loadCalibration()).toEqual(calibration);
     expect(loadGameplaySettings()).toEqual(gameplay);
+  });
+});
+
+describe('clearAccountStats (account-wide "Clear data")', () => {
+  it('clears local stats immediately with no network calls when sync is disabled', async () => {
+    stubLocalStorage();
+    const client = await import('./client');
+
+    const { statsStore } = await import('@/stats/store');
+    const { defaultDichopticSettings } = await import('@/engine/dichoptic');
+    statsStore.addTraining('amblyotris', 5000, defaultDichopticSettings());
+
+    const { clearAccountStats } = await import('./engine');
+    await clearAccountStats();
+
+    expect(statsStore.get().totalMs).toBe(0);
+    expect(client.pullBlob).not.toHaveBeenCalled();
+    expect(client.pushBlob).not.toHaveBeenCalled();
+  });
+
+  it('zeroes every device (including a cached other device) and pushes a fresh resetAt when sync is enabled', async () => {
+    stubLocalStorage();
+    const { getDeviceId } = await import('./deviceId');
+    const deviceId = getDeviceId();
+
+    const client = await import('./client');
+    (client.pullBlob as Mock).mockResolvedValue({
+      schemaVersion: 4,
+      config: { settings: {}, updatedAt: 0 },
+      stats: {
+        devices: {
+          [deviceId]: { label: 'this-device', lastActiveAt: Date.now(), stats: { version: 1, totalMs: 5000, byDay: {}, byGame: {}, contrast: [], sessions: [], bestScore: {} } },
+          'other-device': { label: 'other-device', lastActiveAt: Date.now(), stats: { version: 1, totalMs: 99000, byDay: {}, byGame: {}, contrast: [], sessions: [], bestScore: {} } },
+        },
+        resetAt: 0,
+      },
+    });
+    (client.pushBlob as Mock).mockResolvedValue(true);
+
+    const { statsStore } = await import('@/stats/store');
+    const { defaultDichopticSettings } = await import('@/engine/dichoptic');
+    statsStore.addTraining('amblyotris', 5000, defaultDichopticSettings());
+
+    const { connectSync, clearAccountStats } = await import('./engine');
+    await connectSync(IDENTITY);
+    await vi.waitFor(() => expect(client.pushBlob).toHaveBeenCalled());
+    (client.pushBlob as Mock).mockClear();
+
+    const before = Date.now();
+    // connectSync's own fire-and-forget syncNow() may still be mid-flight
+    // (holding the module's `syncing` guard) even after its push landed —
+    // retry until our call actually gets through, same pattern as the
+    // "does not let a stale remote copy resurrect a local clear" test above.
+    await vi.waitFor(async () => {
+      await clearAccountStats();
+      expect(client.pushBlob).toHaveBeenCalledTimes(1);
+    });
+
+    expect(statsStore.get().totalMs).toBe(0);
+    const pushedBlob = (client.pushBlob as Mock).mock.calls.at(-1)?.[1] as {
+      stats: { devices: Record<string, { stats: { totalMs: number } }>; resetAt: number };
+    };
+    expect(pushedBlob.stats.devices[deviceId].stats.totalMs).toBe(0);
+    expect(pushedBlob.stats.devices['other-device'].stats.totalMs).toBe(0);
+    expect(pushedBlob.stats.resetAt).toBeGreaterThanOrEqual(before);
+  });
+});
+
+describe('syncOnce self-clearing on a newer remote resetAt', () => {
+  it('clears local stats before reconciling when the remote resetAt is newer than lastAppliedResetAt', async () => {
+    stubLocalStorage();
+    const { getDeviceId } = await import('./deviceId');
+    const deviceId = getDeviceId();
+
+    const client = await import('./client');
+    (client.pullBlob as Mock).mockResolvedValue({
+      schemaVersion: 4,
+      config: { settings: {}, updatedAt: 0 },
+      stats: {
+        devices: {
+          [deviceId]: { label: 'this-device', lastActiveAt: Date.now(), stats: { version: 1, totalMs: 0, byDay: {}, byGame: {}, contrast: [], sessions: [], bestScore: {} } },
+        },
+        resetAt: Date.now(),
+      },
+    });
+    (client.pushBlob as Mock).mockResolvedValue(true);
+
+    const { statsStore } = await import('@/stats/store');
+    const { defaultDichopticSettings } = await import('@/engine/dichoptic');
+    statsStore.addTraining('amblyotris', 42000, defaultDichopticSettings());
+
+    const { connectSync } = await import('./engine');
+    await connectSync(IDENTITY);
+
+    await vi.waitFor(() => expect(statsStore.get().totalMs).toBe(0)); // self-cleared, not reconciled up
+  });
+
+  it('does not re-clear (or lose freshly-accrued time) on a second sync with the same resetAt', async () => {
+    stubLocalStorage();
+    const { getDeviceId } = await import('./deviceId');
+    const deviceId = getDeviceId();
+    const resetAt = Date.now();
+
+    const client = await import('./client');
+    (client.pullBlob as Mock).mockResolvedValue({
+      schemaVersion: 4,
+      config: { settings: {}, updatedAt: 0 },
+      stats: {
+        devices: {
+          [deviceId]: { label: 'this-device', lastActiveAt: Date.now(), stats: { version: 1, totalMs: 0, byDay: {}, byGame: {}, contrast: [], sessions: [], bestScore: {} } },
+        },
+        resetAt,
+      },
+    });
+    (client.pushBlob as Mock).mockResolvedValue(true);
+
+    const { statsStore } = await import('@/stats/store');
+    const { defaultDichopticSettings } = await import('@/engine/dichoptic');
+
+    const { connectSync, syncNow } = await import('./engine');
+    await connectSync(IDENTITY);
+    await vi.waitFor(() => expect(statsStore.get().totalMs).toBe(0));
+
+    // Freshly-accrued time after the reset was already applied once.
+    statsStore.addTraining('amblyotris', 3000, defaultDichopticSettings());
+    await syncNow();
+
+    expect(statsStore.get().totalMs).toBe(3000); // not wiped again by the same resetAt
   });
 });
 

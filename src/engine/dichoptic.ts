@@ -48,6 +48,13 @@ export interface DichopticSettings {
   variant: PointVariant;
   /** Which eye wears the cyan lens (the other wears red). Default: left. */
   cyanEye: Eye;
+  /**
+   * Has the patient explicitly confirmed which eye wears the red lens?
+   * Gates Orthoptics' one-time first-run prompt (see OrthopticsExercise) —
+   * false (the default, including for every pre-existing settings record)
+   * means "ask once, then remember."
+   */
+  redEyeConfigured: boolean;
 }
 
 /**
@@ -101,6 +108,7 @@ export function defaultGameplaySettings(): GameplaySettings {
     variantAlternatives: ['filled', 'hollow', 'hollowLine'],
     variant: 'filled',
     cyanEye: 'left',
+    redEyeConfigured: false,
   };
 }
 

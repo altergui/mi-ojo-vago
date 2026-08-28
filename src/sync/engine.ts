@@ -21,7 +21,7 @@ import {
 import { capSessionsForPush, mergeConfig, reconcileOwnStats } from './merge';
 import { loadSettingsEnvelope, saveSettingsEnvelope, saveGameplaySettings } from '@/settings/store';
 import { defaultGameplaySettings } from '@/engine/dichoptic';
-import { statsStore } from '@/stats/store';
+import { emptyStats, statsStore } from '@/stats/store';
 
 export interface SyncSnapshot {
   meta: SyncMeta;
@@ -97,14 +97,15 @@ export async function syncNow(opts: { reconcileOwn?: boolean } = {}): Promise<vo
 
 async function syncOnce(meta: SyncMeta, opts: { reconcileOwn?: boolean } = {}): Promise<void> {
   const { reconcileOwn = true } = opts;
-  if (!meta.secretHash) return;
+  const secretHash = meta.secretHash;
+  if (!secretHash) return;
   const deviceId = getDeviceId();
   const settingsEnvelope = loadSettingsEnvelope();
-  const ownStats = statsStore.get();
+  let ownStats = statsStore.get();
 
   let remote: SyncBlob | null = null;
   try {
-    remote = await pullBlob(meta.secretHash);
+    remote = await pullBlob(secretHash);
   } catch {
     // Pull failures are silent — we still push our local state below.
   }
@@ -116,7 +117,20 @@ async function syncOnce(meta: SyncMeta, opts: { reconcileOwn?: boolean } = {}): 
   // longer current — that would silently resurrect state a subsequent
   // disconnectSync()/connectSync() call already meant to clear or replace.
   // (Checked again below the push, for the same reason.)
-  if (snapshot.meta.secretHash !== meta.secretHash) return;
+  if (snapshot.meta.secretHash !== secretHash) return;
+
+  // Another device may have hit "Clear data" (an account-wide reset, see
+  // clearAccountStats) since we last synced. Detect that via the shared
+  // resetAt epoch and self-clear before reconciling, so this device's own
+  // stale local stats don't survive as "reconciled" data.
+  const remoteResetAt = remote?.stats.resetAt ?? 0;
+  if (remoteResetAt > meta.lastAppliedResetAt) {
+    statsStore.clear();
+    ownStats = statsStore.get();
+    meta = { ...meta, lastAppliedResetAt: remoteResetAt };
+    saveSyncMeta(meta);
+    setSnapshot({ meta });
+  }
 
   const remoteOwnStats = remote?.stats.devices[deviceId]?.stats;
   const reconciledOwnStats = reconcileOwn ? reconcileOwnStats(ownStats, remoteOwnStats) : ownStats;
@@ -149,19 +163,92 @@ async function syncOnce(meta: SyncMeta, opts: { reconcileOwn?: boolean } = {}): 
         ...otherDevices,
         [deviceId]: { label: getDeviceLabel(), lastActiveAt: Date.now(), stats: capSessionsForPush(reconciledOwnStats) },
       },
+      resetAt: remoteResetAt,
     },
   };
 
-  const ok = await pushBlob(meta.secretHash, blob);
+  const ok = await pushBlob(secretHash, blob);
   dirty = !ok;
   // Same staleness check as above the pull, re-checked here: the push above
   // is another await this identity could stop being current during (e.g. a
   // logout that raced this call all the way to its last step). Writing
   // `updatedMeta` unconditionally would re-enable a just-logged-out identity.
-  if (ok && snapshot.meta.secretHash === meta.secretHash) {
+  if (ok && snapshot.meta.secretHash === secretHash) {
     const updatedMeta = { ...meta, lastSyncedAt: new Date().toISOString() };
     saveSyncMeta(updatedMeta);
     setSnapshot({ meta: updatedMeta });
+  }
+}
+
+/**
+ * Resets stats for the WHOLE synced account — every device tied to this
+ * identity, not just this one. Used by the Stats page's "Clear data" button
+ * (see StatsDashboard.tsx): "Total time" / "Time by contrast per eye" are
+ * cumulative totals merged across every synced device, so clearing only this
+ * device's own record would leave other devices' contributions showing
+ * forever in those views while only the date-windowed "Last 7 days" chart
+ * happened to look cleared.
+ *
+ * Clears this device's own stats immediately (so its UI reflects zero right
+ * away). If sync is enabled, also pulls the current blob, rewrites every
+ * device's entry to zeroed stats, and stamps a fresh `resetAt` epoch — every
+ * other device picks this up and self-clears on its own next sync (see the
+ * resetAt check in syncOnce above), since the server has no way to reach
+ * into another device's browser directly.
+ *
+ * Held behind the same `syncing` guard as syncNow so a concurrent poll can't
+ * pull stale (pre-clear) numbers and push them back on top of the reset;
+ * only the sub-second window where a sync was already past that guard and
+ * mid-push when this is called remains a (documented, eventual-consistency)
+ * risk, same as the rest of this module.
+ */
+export async function clearAccountStats(): Promise<void> {
+  statsStore.clear();
+  const meta = snapshot.meta;
+  const secretHash = meta.secretHash;
+  if (!meta.enabled || !secretHash) return; // no sync configured: local clear is enough
+  if (syncing) return; // a sync is already in flight; the resetAt it pulls will simply be stale, and this method isn't retried automatically — acceptable since the local clear above already happened
+  syncing = true;
+  try {
+    const deviceId = getDeviceId();
+    let remote: SyncBlob | null = null;
+    try {
+      remote = await pullBlob(secretHash);
+    } catch {
+      // Proceed with just this device's entry below.
+    }
+
+    const resetAt = Date.now();
+    const devices: Record<string, SyncDeviceEntry> = {};
+    if (remote) {
+      for (const [id, entry] of Object.entries(remote.stats.devices)) {
+        devices[id] = { ...entry, stats: emptyStats() };
+      }
+    }
+    devices[deviceId] = { label: getDeviceLabel(), lastActiveAt: Date.now(), stats: emptyStats() };
+
+    const otherDevices = Object.fromEntries(Object.entries(devices).filter(([id]) => id !== deviceId));
+    saveRemoteDevices(otherDevices);
+    setSnapshot({ remoteDevices: otherDevices });
+
+    const settingsEnvelope = loadSettingsEnvelope();
+    const blob: SyncBlob = {
+      schemaVersion: SYNC_SCHEMA_VERSION,
+      config: remote?.config ?? { settings: settingsEnvelope.settings, updatedAt: settingsEnvelope.updatedAt },
+      stats: { devices, resetAt },
+    };
+
+    const ok = await pushBlob(secretHash, blob);
+    if (snapshot.meta.secretHash !== secretHash) return; // identity changed mid-flight — see syncOnce's staleness comment
+    const updatedMeta: SyncMeta = {
+      ...meta,
+      lastAppliedResetAt: resetAt,
+      lastSyncedAt: ok ? new Date().toISOString() : meta.lastSyncedAt,
+    };
+    saveSyncMeta(updatedMeta);
+    setSnapshot({ meta: updatedMeta });
+  } finally {
+    syncing = false;
   }
 }
 
@@ -202,7 +289,7 @@ export async function connectSync(
     return { ok: false, error: 'network' };
   }
 
-  const meta: SyncMeta = { enabled: true, name: identity.name, dob: identity.dob, secretHash, lastSyncedAt: null };
+  const meta: SyncMeta = { enabled: true, name: identity.name, dob: identity.dob, secretHash, lastSyncedAt: null, lastAppliedResetAt: 0 };
   saveSyncMeta(meta);
   setSnapshot({ meta });
   void syncNow();
@@ -280,7 +367,10 @@ export function disconnectSync(): void {
     debounceTimer = null;
   }
   dirty = false;
-  setSnapshot({ meta: { enabled: false, name: null, dob: null, secretHash: null, lastSyncedAt: null }, remoteDevices: {} });
+  setSnapshot({
+    meta: { enabled: false, name: null, dob: null, secretHash: null, lastSyncedAt: null, lastAppliedResetAt: 0 },
+    remoteDevices: {},
+  });
 }
 
 /**

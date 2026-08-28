@@ -27,6 +27,13 @@ export interface SettingsCapabilities {
   contrast?: boolean;
   /** Fill/variant pills (dot shape: filled/hollow/hollow-line). */
   fill?: boolean;
+  /**
+   * The "which eye has the red lens" control (and the preview's left/right
+   * eye ordering that follows it). Only meaningful for Orthoptics — the 4
+   * games always draw cyan/red as fixed roles regardless of this setting, so
+   * showing a swap control there would visibly do nothing.
+   */
+  eyeSwap?: boolean;
 }
 
 interface Props {
@@ -141,7 +148,7 @@ function lightnessRange(activeIdx: number, slot: 0 | 1 | 2): { min: number; max:
  * background so the choice is visible before it is made.
  */
 export function SettingsPanel({ open, calibration, gameplaySettings, capabilities = {}, onApplyCalibration, onApplyGameplay, onClose }: Props) {
-  const { eyeCalibration = true, contrast = true, fill = true } = capabilities;
+  const { eyeCalibration = true, contrast = true, fill = true, eyeSwap = false } = capabilities;
   const { t } = useI18n();
   const [draftGameplay, setDraftGameplay] = useState<GameplaySettings>(gameplaySettings);
   const [colorAlternatives, setColorAlternatives] = useState<string[][]>(calibration.colorAlternatives);
@@ -200,7 +207,12 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
   const apply = () => {
     const color = [...colorAlternatives[activeIdx]];
     onApplyCalibration({ color, colorAlternatives });
-    onApplyGameplay({ opacity: draftGameplay.opacity, variant: draftGameplay.variant, cyanEye: draftGameplay.cyanEye });
+    onApplyGameplay({
+      opacity: draftGameplay.opacity,
+      variant: draftGameplay.variant,
+      cyanEye: draftGameplay.cyanEye,
+      redEyeConfigured: draftGameplay.redEyeConfigured,
+    });
     onClose();
   };
 
@@ -212,8 +224,10 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
      (calibration moves it) rather than the modal's dark surface. */
   const menuInk = hexToHsl(activeColors[0])[2] > 55 ? 'var(--primary-ink)' : 'var(--text)';
   /* Cyan sits over whichever eye wears the cyan lens, so the two squares read
-     left-to-right the way the player's own eyes do. */
-  const eyeSlots: (1 | 2)[] = draftGameplay.cyanEye === 'left' ? [1, 2] : [2, 1];
+     left-to-right the way the player's own eyes do — but only where the
+     setting means anything (Orthoptics); games always get the fixed order,
+     since they draw cyan/red as fixed roles regardless of it. */
+  const eyeSlots: (1 | 2)[] = eyeSwap ? (draftGameplay.cyanEye === 'left' ? [1, 2] : [2, 1]) : [1, 2];
 
   const swapPalette = () => {
     setOpenMenu(null);
@@ -365,6 +379,26 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
                   {t(`variant.${v}`)}
                 </button>
               ))}
+            </div>
+          </section>
+        )}
+
+        {eyeSwap && (
+          <section>
+            <h3>{t('settings.redEyeLabel')}</h3>
+            <div className="settings__row">
+              <button
+                className={`pill ${draftGameplay.cyanEye === 'right' ? 'is-selected' : ''}`}
+                onClick={() => update({ cyanEye: 'right', redEyeConfigured: true })}
+              >
+                {t('settings.left')}
+              </button>
+              <button
+                className={`pill ${draftGameplay.cyanEye === 'left' ? 'is-selected' : ''}`}
+                onClick={() => update({ cyanEye: 'left', redEyeConfigured: true })}
+              >
+                {t('settings.right')}
+              </button>
             </div>
           </section>
         )}

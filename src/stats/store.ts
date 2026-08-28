@@ -51,7 +51,7 @@ export interface StatsData {
   bestScore: Record<string, number>; // gameId -> best score
 }
 
-function emptyStats(): StatsData {
+export function emptyStats(): StatsData {
   return {
     version: STATS_VERSION,
     totalMs: 0,
