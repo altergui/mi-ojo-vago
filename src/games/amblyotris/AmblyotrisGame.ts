@@ -9,6 +9,7 @@
 import { asset } from '@/assets';
 import { CanvasLayers } from '@/engine/canvasLayers';
 import {
+  COLOR_INDEX,
   defaultDichopticSettings,
   type DichopticSettings,
 } from '@/engine/dichoptic';
@@ -16,7 +17,7 @@ import { Emitter } from '@/engine/emitter';
 import { fitBox } from '@/engine/fit';
 import { requestAnimFrame } from '@/engine/raf';
 import { SoundManager } from '@/engine/sound';
-import { randomInRange } from '@/engine/utils';
+import { randomInRange, weightedPick } from '@/engine/utils';
 import { BoardPoint, Point } from './point';
 import {
   newTetrominoI,
@@ -66,6 +67,13 @@ export interface AmblyotrisOptions {
 }
 
 type LayerName = 'back' | 'stack' | 'active' | 'front' | 'message';
+
+/** Falling-piece color mix: 40% red, 40% cyan, 20% grey. */
+const FIGURE_COLOR_WEIGHTS = [
+  { value: COLOR_INDEX.red, weight: 40 },
+  { value: COLOR_INDEX.cyan, weight: 40 },
+  { value: COLOR_INDEX.grey, weight: 20 },
+];
 
 export class AmblyotrisGame {
   readonly events = new Emitter<AmblyotrisEvents>();
@@ -623,8 +631,7 @@ export class AmblyotrisGame {
   private chooseRandomFigure = (): void => {
     let randomFigure: Tetromino;
     const randomOption = randomInRange(1, 7);
-    let randomColor = randomInRange(1, 5);
-    if (randomColor > 3) randomColor -= 2;
+    const randomColor = weightedPick(FIGURE_COLOR_WEIGHTS);
     const color = this.settings.color[randomColor] + this.settings.opacity[randomColor];
     const variant = this.settings.variant;
     switch (randomOption) {

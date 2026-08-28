@@ -124,7 +124,13 @@ export function GameShell({ def }: { def: GameDefinition }) {
     game.applySettings(patch);
     const full = game.getSettings();
     setSettings(full);
-    saveGameplaySettings({ opacity: full.opacity, variantAlternatives: full.variantAlternatives, variant: full.variant, cyanEye: full.cyanEye });
+    saveGameplaySettings({
+      opacity: full.opacity,
+      variantAlternatives: full.variantAlternatives,
+      variant: full.variant,
+      cyanEye: full.cyanEye,
+      redEyeConfigured: full.redEyeConfigured,
+    });
     scheduleSync();
   };
 
@@ -287,7 +293,13 @@ export function GameShell({ def }: { def: GameDefinition }) {
       <SettingsPanel
         open={showSettings}
         calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
-        gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
+        gameplaySettings={{
+          opacity: settings.opacity,
+          variantAlternatives: settings.variantAlternatives,
+          variant: settings.variant,
+          cyanEye: settings.cyanEye,
+          redEyeConfigured: settings.redEyeConfigured,
+        }}
         capabilities={def.settingsCapabilities}
         onApplyCalibration={handleApplyCalibration}
         onApplyGameplay={handleApplyGameplay}

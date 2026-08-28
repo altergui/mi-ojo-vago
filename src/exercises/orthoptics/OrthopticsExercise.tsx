@@ -26,7 +26,7 @@ import { saveCalibration } from '@/calibration/store';
 import { IdentityBadge } from '@/components/IdentityBadge';
 import { Modal } from '@/components/Modal';
 import { SettingsPanel } from '@/components/SettingsPanel';
-import { COLOR_INDEX, opacityToPercent, type Calibration, type GameplaySettings } from '@/engine/dichoptic';
+import { COLOR_INDEX, opacityToPercent, type Calibration, type Eye, type GameplaySettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
 import { useDichopticSettings } from '@/settings/composed';
 import { saveGameplaySettings } from '@/settings/store';
@@ -109,9 +109,18 @@ export function OrthopticsExercise() {
       variantAlternatives: settings.variantAlternatives,
       variant: settings.variant,
       cyanEye: settings.cyanEye,
+      redEyeConfigured: settings.redEyeConfigured,
       ...patch,
     });
     scheduleSync();
+  };
+
+  // First-run flow: ask once which eye has the red lens, then remember it.
+  // Gated directly on the stored flag rather than a separate "dismissed"
+  // flag — once saved, settings.redEyeConfigured flips to true and the
+  // modal simply stops rendering, on this and every future visit.
+  const confirmRedEye = (redEye: Eye) => {
+    handleApplyGameplay({ cyanEye: redEye === 'left' ? 'right' : 'left', redEyeConfigured: true });
   };
 
   const step = prefs.fast ? 10 : 5;
@@ -235,6 +244,27 @@ export function OrthopticsExercise() {
     );
   }
 
+  if (!settings.redEyeConfigured) {
+    return (
+      <Modal open title={t('¿Dónde está el vidrio rojo?', 'Which eye has the red lens?')} hideClose onClose={() => undefined}>
+        <p>
+          {t(
+            'En tus anteojos, el vidrio rojo está en el ojo:',
+            'On your glasses, the red lens is over your:'
+          )}
+        </p>
+        <div className="settings__row">
+          <button className="btn btn--primary" onClick={() => confirmRedEye('left')}>
+            {t('Izquierdo', 'Left')}
+          </button>
+          <button className="btn btn--primary" onClick={() => confirmRedEye('right')}>
+            {t('Derecho', 'Right')}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
   const cyanContrast = opacityToPercent(settings.opacity[COLOR_INDEX.cyan]) / 100;
   const redContrast = opacityToPercent(settings.opacity[COLOR_INDEX.red]) / 100;
   const cyanColor = settings.color[COLOR_INDEX.cyan];
@@ -333,12 +363,20 @@ export function OrthopticsExercise() {
       <SettingsPanel
         open={showSettings}
         calibration={{ colorAlternatives: settings.colorAlternatives, color: settings.color }}
-        gameplaySettings={{ opacity: settings.opacity, variantAlternatives: settings.variantAlternatives, variant: settings.variant, cyanEye: settings.cyanEye }}
+        gameplaySettings={{
+          opacity: settings.opacity,
+          variantAlternatives: settings.variantAlternatives,
+          variant: settings.variant,
+          cyanEye: settings.cyanEye,
+          redEyeConfigured: settings.redEyeConfigured,
+        }}
         // The stimuli are vector silhouettes (see Silhouette/silhouettes.ts)
         // filled with the calibrated color directly, so eye-color calibration
         // applies, but there's no dot/piece shape to vary — fill is still
-        // dead in this exercise.
-        capabilities={{ fill: false }}
+        // dead in this exercise. eyeSwap is on here (and only here): this is
+        // the one place "which eye has the red lens" means anything (see
+        // SettingsCapabilities in SettingsPanel.tsx).
+        capabilities={{ fill: false, eyeSwap: true }}
         onApplyCalibration={handleApplyCalibration}
         onApplyGameplay={handleApplyGameplay}
         onClose={() => setShowSettings(false)}

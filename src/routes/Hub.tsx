@@ -6,7 +6,7 @@ import { useStats } from '@/stats/useStats';
 import { formatDuration } from '@/stats/format';
 
 export function Hub() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const stats = useStats();
 
   return (
@@ -62,30 +62,49 @@ export function Hub() {
         <h3>{t('hub.glassesTitle')}</h3>
         <p>{t('hub.glassesText')}</p>
         <div className="glasses-grid">
-          <a
-            className="glasses-card"
-            href="https://lapiramideopticas.com/product/lentes-rojo-azul-anaglifos-mod01/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img src={asset('/brand/glasses-piramide.jpeg')} alt={t('hub.glasses.piramideName')} loading="lazy" />
-            <span className="glasses-card__name">{t('hub.glasses.piramideName')}</span>
-            <span className="btn btn--accent">{t('hub.glasses.seeMore')}</span>
-          </a>
-          <a
-            className="glasses-card"
-            href="https://www.mercadolibre.com.ar/anteojo-3d--lente-anaglifo--columbia-pictures--1-unidad/up/MLAU299767780"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img
-              src={asset('/brand/glasses-mercadolibre.webp')}
-              alt={t('hub.glasses.mercadolibreName')}
-              loading="lazy"
-            />
-            <span className="glasses-card__name">{t('hub.glasses.mercadolibreName')}</span>
-            <span className="btn btn--accent">{t('hub.glasses.seeMore')}</span>
-          </a>
+          {lang === 'en' ? (
+            // lapiramideopticas/MercadoLibre only ship within Argentina — for
+            // English speakers, point at Bernell instead (an international
+            // vision-therapy supplier), same one dresiribarren.com.ar/my-lazy-eye/
+            // links to.
+            <a
+              className="glasses-card"
+              href="https://www.bernell.com/product/HTSRBG/137"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img src={asset('/brand/glasses-bernell.jpg')} alt={t('hub.glasses.bernellName')} loading="lazy" />
+              <span className="glasses-card__name">{t('hub.glasses.bernellName')}</span>
+              <span className="btn btn--accent">{t('hub.glasses.seeMore')}</span>
+            </a>
+          ) : (
+            <>
+              <a
+                className="glasses-card"
+                href="https://lapiramideopticas.com/product/lentes-rojo-azul-anaglifos-mod01/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img src={asset('/brand/glasses-piramide.jpeg')} alt={t('hub.glasses.piramideName')} loading="lazy" />
+                <span className="glasses-card__name">{t('hub.glasses.piramideName')}</span>
+                <span className="btn btn--accent">{t('hub.glasses.seeMore')}</span>
+              </a>
+              <a
+                className="glasses-card"
+                href="https://www.mercadolibre.com.ar/anteojo-3d--lente-anaglifo--columbia-pictures--1-unidad/up/MLAU299767780"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src={asset('/brand/glasses-mercadolibre.webp')}
+                  alt={t('hub.glasses.mercadolibreName')}
+                  loading="lazy"
+                />
+                <span className="glasses-card__name">{t('hub.glasses.mercadolibreName')}</span>
+                <span className="btn btn--accent">{t('hub.glasses.seeMore')}</span>
+              </a>
+            </>
+          )}
         </div>
       </section>
 

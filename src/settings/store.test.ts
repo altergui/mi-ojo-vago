@@ -83,6 +83,44 @@ describe('legacy full DichopticSettings (calibration fields bundled in)', () => 
   });
 });
 
+describe('redEyeConfigured (added after cyanEye existed)', () => {
+  it('defaults to false when a stored settings blob predates the field', async () => {
+    stubLocalStorage({
+      'miojovago.settings.global': JSON.stringify({
+        schemaVersion: 1,
+        updatedAt: 12345,
+        settings: {
+          opacity: ['FF', 'FF', 'FF', 'FF'],
+          variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+          variant: 'filled',
+          cyanEye: 'left',
+          // no redEyeConfigured — this record predates the field
+        },
+      }),
+    });
+    const { loadSettingsEnvelope } = await import('./store');
+    expect(loadSettingsEnvelope().settings.redEyeConfigured).toBe(false);
+  });
+
+  it('round-trips an explicit true unchanged', async () => {
+    stubLocalStorage({
+      'miojovago.settings.global': JSON.stringify({
+        schemaVersion: 1,
+        updatedAt: 12345,
+        settings: {
+          opacity: ['FF', 'FF', 'FF', 'FF'],
+          variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+          variant: 'filled',
+          cyanEye: 'right',
+          redEyeConfigured: true,
+        },
+      }),
+    });
+    const { loadSettingsEnvelope } = await import('./store');
+    expect(loadSettingsEnvelope().settings.redEyeConfigured).toBe(true);
+  });
+});
+
 describe('saveGameplaySettings', () => {
   it('bumps updatedAt to now on an explicit edit', async () => {
     stubLocalStorage();

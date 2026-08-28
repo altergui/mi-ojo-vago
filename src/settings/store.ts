@@ -63,6 +63,7 @@ function pickGameplaySettings(parsed: unknown): GameplaySettings {
     variantAlternatives: p.variantAlternatives ?? d.variantAlternatives,
     variant: p.variant ?? d.variant,
     cyanEye: p.cyanEye ?? d.cyanEye,
+    redEyeConfigured: p.redEyeConfigured ?? d.redEyeConfigured,
   };
 }
 

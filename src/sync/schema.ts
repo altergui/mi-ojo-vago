@@ -1,7 +1,7 @@
 import type { GameplaySettings } from '@/engine/dichoptic';
 import type { StatsData } from '@/stats/store';
 
-export const SYNC_SCHEMA_VERSION = 3 as const;
+export const SYNC_SCHEMA_VERSION = 4 as const;
 
 /** A device's stats plus enough to show it in a device list: a glanceable label and when it last pushed. */
 export interface SyncDeviceEntry {
@@ -19,9 +19,9 @@ export interface SyncDeviceEntry {
  * `config.settings` is deliberately typed as GameplaySettings, not the full
  * DichopticSettings — screen-color calibration is device-local (see
  * `@/calibration/store`) and must never be part of this blob, so it can
- * never sync/overwrite across a person's devices. (Bumped from schemaVersion
- * 2: purely documentary, the worker stores blobs opaquely and doesn't branch
- * on this value.)
+ * never sync/overwrite across a person's devices. (Bumped to schemaVersion
+ * 4 for `stats.resetAt`: purely documentary, the worker stores blobs opaquely
+ * and doesn't branch on this value.)
  */
 export interface SyncBlob {
   schemaVersion: typeof SYNC_SCHEMA_VERSION;
@@ -32,6 +32,8 @@ export interface SyncBlob {
   stats: {
     /** Keyed by deviceId. */
     devices: Record<string, SyncDeviceEntry>;
+    /** Epoch ms of the last account-wide "Clear data"; 0 = never reset. Every device compares this against its own `SyncMeta.lastAppliedResetAt` and self-clears when it's newer. */
+    resetAt: number;
   };
 }
 
@@ -44,10 +46,12 @@ export interface SyncMeta {
   dob: string | null; // as literally typed, ISO YYYY-MM-DD — for display
   secretHash: string | null; // hex SHA-256 of normalize(name)+normalize(dob) — the KV key
   lastSyncedAt: string | null; // ISO
+  /** Epoch ms of the last account-wide reset this device has already applied locally; 0 = none applied yet. */
+  lastAppliedResetAt: number;
 }
 
 function defaultMeta(): SyncMeta {
-  return { enabled: false, name: null, dob: null, secretHash: null, lastSyncedAt: null };
+  return { enabled: false, name: null, dob: null, secretHash: null, lastSyncedAt: null, lastAppliedResetAt: 0 };
 }
 
 export function loadSyncMeta(): SyncMeta {
