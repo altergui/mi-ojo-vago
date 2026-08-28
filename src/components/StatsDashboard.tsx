@@ -116,9 +116,9 @@ export function StatsDashboard() {
               <li key={i}>
                 <div className="contrast-list__meta">
                   <span className="dot" style={{ background: `#00FFFF` }} title="cyan" />
-                  {c.cyanEye === 'left' ? t('settings.left') : t('settings.right')} {c.cyanPercent}%
+                  {c.cyanPercent}%
                   <span className="dot" style={{ background: `#FF4040` }} title="red" />
-                  {c.cyanEye === 'left' ? t('settings.right') : t('settings.left')} {c.redPercent}%
+                  {c.redPercent}%
                   <span className="tag">{variantLabel(c.variant, t)}</span>
                 </div>
                 <div className="contrast-list__bar">
