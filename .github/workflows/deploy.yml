@@ -68,6 +68,30 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Ensure preview URLs are enabled
+        # Preview URLs live on the Worker's workers.dev subdomain, which is off
+        # because this Worker is served from a custom domain -- and `versions
+        # upload` will not turn it on. Idempotent, so it just re-asserts the
+        # setting on every run. `enabled: false` keeps the stable workers.dev
+        # hostname off; only the per-version preview hostnames are wanted.
+        shell: bash
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT"
+          subdomain=$(curl -sS -H "Authorization: Bearer $CF_TOKEN" \
+            "$api/workers/subdomain" | jq -r '.result.subdomain // empty')
+          if [ -z "$subdomain" ]; then
+            echo "::error::This account has no workers.dev subdomain, so preview URLs cannot exist. Register one under Workers & Pages -> Subdomain in the Cloudflare dashboard."
+            exit 1
+          fi
+          echo "account subdomain: $subdomain"
+          curl -sS -X POST -H "Authorization: Bearer $CF_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data '{"enabled":false,"previews_enabled":true}' \
+            "$api/workers/scripts/mi-ojo-vago-dev/subdomain" | jq -e '.success'
       - name: wrangler versions upload (preview)
         id: upload
         # Uploads a version without promoting it: the version gets its own
