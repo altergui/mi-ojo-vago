@@ -9,6 +9,9 @@
   "routes": [
     { "pattern": "mi-ojo-vago-dev.guidev.org", "custom_domain": true }
   ],
+  // Per-PR preview URLs come from `wrangler versions upload`; stated
+  // explicitly (it is also the default) because CI depends on it.
+  "preview_urls": true,
   "observability": {
     "enabled": true
   }

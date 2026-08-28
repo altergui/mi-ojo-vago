@@ -47,10 +47,86 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-  deploy-dev:
-    name: Deploy dev preview (mi-ojo-vago-dev.guidev.org)
+  preview-pr:
+    name: Upload PR preview (per-PR URL)
     needs: build-and-test
     if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    # Scoped to one PR. The old shared group meant two open PRs raced for the
+    # same deployment and whichever finished last owned the dev URL.
+    concurrency:
+      group: cloudflare-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: wrangler versions upload (preview)
+        id: upload
+        # Uploads a version without promoting it: the version gets its own
+        # preview URL, and mi-ojo-vago-dev.guidev.org keeps serving whatever
+        # was last deployed there.
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler versions upload --config wrangler.dev.jsonc \
+            --message "PR #${PR_NUMBER}: ${PR_TITLE}" \
+            --tag "pr-${PR_NUMBER}" | tee upload.log
+          url=$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' upload.log | tail -1)
+          if [ -z "$url" ]; then
+            echo "::error::wrangler printed no preview URL - are preview URLs enabled for this Worker?"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Passed as env rather than interpolated into the script: a PR title
+          # is arbitrary text and would otherwise be evaluated as shell.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+      - name: Comment the preview URL
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          URL: ${{ steps.upload.outputs.url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          body=$(cat <<EOF
+          <!-- cf-preview -->
+          **Preview:** $URL
+
+          Built from \`${SHA:0:7}\`. This URL belongs to this PR alone;
+          mi-ojo-vago-dev.guidev.org is untouched (run the workflow manually to
+          put a branch there).
+          EOF
+          )
+          # One comment per PR, edited in place, so a PR with many pushes does
+          # not accumulate a stack of near-identical bot comments.
+          # --paginate runs the filter once per page, so trim to the first hit.
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+                 --jq '.[] | select(.body | startswith("<!-- cf-preview -->")) | .id' | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" --silent
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$body" --silent
+          fi
+
+  deploy-dev:
+    name: Deploy dev (mi-ojo-vago-dev.guidev.org)
+    needs: build-and-test
+    # Manual only. Pull requests get their own preview URLs above, so putting a
+    # branch on the shared dev domain is now a deliberate act.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     concurrency:
       group: cloudflare-deploy-dev
