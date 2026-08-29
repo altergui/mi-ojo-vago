@@ -125,3 +125,20 @@ export function opacityToPercent(byte: string): number {
 export function redEye(settings: Pick<DichopticSettings, 'cyanEye'>): Eye {
   return settings.cyanEye === 'left' ? 'right' : 'left';
 }
+
+/**
+ * Orthoptics' "left"/"right" roles (its markers plus the two stimulus
+ * silhouettes) stay put on screen regardless of cyanEye — only which color
+ * tint fills each role changes, so the role's content keeps reaching the
+ * intended physical eye no matter which lens that eye actually wears.
+ *
+ * `leftIsRed` says whether the "left" role should be tinted red (true) or
+ * cyan (false). `dpSign` mirrors the diopter readout to match: swapping
+ * which eye is red mirrors the perceived convergence/divergence disparity
+ * (the two stimuli's fixed screen movement now reaches the opposite eyes),
+ * so "+" keeps meaning convergence to the person actually looking at it.
+ */
+export function orthopticsEyeRoles(cyanEye: Eye): { leftIsRed: boolean; dpSign: 1 | -1 } {
+  const leftIsRed = redEye({ cyanEye }) === 'left';
+  return { leftIsRed, dpSign: leftIsRed ? 1 : -1 };
+}
