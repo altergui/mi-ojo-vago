@@ -26,7 +26,7 @@ import { saveCalibration } from '@/calibration/store';
 import { IdentityBadge } from '@/components/IdentityBadge';
 import { Modal } from '@/components/Modal';
 import { SettingsPanel } from '@/components/SettingsPanel';
-import { COLOR_INDEX, opacityToPercent, type Calibration, type Eye, type GameplaySettings } from '@/engine/dichoptic';
+import { COLOR_INDEX, opacityToPercent, orthopticsEyeRoles, type Calibration, type Eye, type GameplaySettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
 import { useDichopticSettings } from '@/settings/composed';
 import { saveGameplaySettings } from '@/settings/store';
@@ -223,8 +223,9 @@ export function OrthopticsExercise() {
   }, [step]);
 
   const stim = STIMULI.find((s) => s.id === prefs.stimulus) ?? STIMULI[0];
+  const { leftIsRed, dpSign } = orthopticsEyeRoles(settings.cyanEye);
   // Punto = ((PuntoA * Pixel) / 10) * 0.75, verbatim from the source's diopter formula.
-  const dp = (((puntoA * PIXEL) / 10) * 0.75).toFixed(1);
+  const dp = (((dpSign * puntoA * PIXEL) / 10) * 0.75).toFixed(1);
 
   const t = (esStr: string, enStr: string) => (es ? esStr : enStr);
 
@@ -269,6 +270,13 @@ export function OrthopticsExercise() {
   const redContrast = opacityToPercent(settings.opacity[COLOR_INDEX.red]) / 100;
   const cyanColor = settings.color[COLOR_INDEX.cyan];
   const redColor = settings.color[COLOR_INDEX.red];
+  // "left" role (marker + stim.red) and "right" role (marker + stim.cyan) stay
+  // put — only which color fills each role swaps, so whichever eye the user's
+  // glasses put behind the red lens is always the one that can see the "left" role.
+  const leftColor = leftIsRed ? redColor : cyanColor;
+  const leftContrast = leftIsRed ? redContrast : cyanContrast;
+  const rightColor = leftIsRed ? cyanColor : redColor;
+  const rightContrast = leftIsRed ? cyanContrast : redContrast;
 
   return (
     <div className="shell shell--orthoptics" style={{ background: settings.color[0] }}>
@@ -325,29 +333,29 @@ export function OrthopticsExercise() {
           {prefs.showMarkers && (
             <Silhouette
               name="left"
-              color={redColor}
+              color={leftColor}
               className="ortho__marker"
-              style={{ opacity: redContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY + 65}px))` }}
+              style={{ opacity: leftContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY + 65}px))` }}
             />
           )}
           <Silhouette
             name={stim.red}
-            color={redColor}
+            color={leftColor}
             className="ortho__stimulus"
-            style={{ opacity: redContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))` }}
+            style={{ opacity: leftContrast, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))` }}
           />
           <Silhouette
             name={stim.cyan}
-            color={cyanColor}
+            color={rightColor}
             className="ortho__stimulus"
-            style={{ opacity: cyanContrast, transform: `translate(calc(-50% - ${offsetX}px), calc(-50% - ${offsetY}px))` }}
+            style={{ opacity: rightContrast, transform: `translate(calc(-50% - ${offsetX}px), calc(-50% - ${offsetY}px))` }}
           />
           {prefs.showMarkers && (
             <Silhouette
               name="right"
-              color={cyanColor}
+              color={rightColor}
               className="ortho__marker"
-              style={{ opacity: cyanContrast, transform: `translate(calc(-50% + ${-offsetX}px), calc(-50% + ${-offsetY - 65}px))` }}
+              style={{ opacity: rightContrast, transform: `translate(calc(-50% + ${-offsetX}px), calc(-50% + ${-offsetY - 65}px))` }}
             />
           )}
         </div>
