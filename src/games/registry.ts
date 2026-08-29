@@ -31,10 +31,6 @@ export const GAMES: GameDefinition[] = [
     controlScheme: 'paddle',
     hasPreview: false,
     boardAspect: 2 / 3,
-    // Paddle/ball/bricks are drawn with settings.color straight, with no
-    // settings.opacity/variant applied anywhere (see AmblyonoidGame.draw*) —
-    // contrast and fill are dead here.
-    settingsCapabilities: { contrast: false, fill: false },
     create: (opts) =>
       new AmblyonoidGame({
         board: opts.board,

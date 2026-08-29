@@ -1,15 +1,68 @@
+import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { IdentityBadge } from './components/IdentityBadge';
 import { asset } from './assets';
-import { useI18n } from './i18n';
+import { useI18n, type Lang } from './i18n';
 import { useSyncMeta } from './sync/useSyncState';
 
 const donationEmail = import.meta.env.VITE_DONATION_EMAIL as string | undefined;
 const donationPhone = import.meta.env.VITE_DONATION_PHONE as string | undefined;
 const donationPhoneHref = donationPhone?.replace(/[^+\d]/g, '');
 
+/** Each language's own name, in itself — never translated. */
+const LANG_NAMES: Record<Lang, string> = {
+  es: 'Español',
+  en: 'English',
+};
+
+function LanguageSwitcher() {
+  const { lang, setLang } = useI18n();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="lang-switcher">
+      <button type="button" className="app__lang" onClick={() => setOpen((o) => !o)} aria-haspopup="true" aria-expanded={open} aria-label="Toggle language">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+        </svg>
+        {lang.toUpperCase()}
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <button type="button" className="lang-switcher__scrim" aria-label="Close" onClick={() => setOpen(false)} />
+          <div className="lang-switcher__menu" role="menu">
+            {(Object.keys(LANG_NAMES) as Lang[]).map((l) => (
+              <button
+                key={l}
+                type="button"
+                role="menuitem"
+                className={`lang-switcher__item ${lang === l ? 'is-selected' : ''}`}
+                onClick={() => {
+                  setLang(l);
+                  setOpen(false);
+                }}
+              >
+                {LANG_NAMES[l]}
+                {lang === l && (
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function App() {
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const location = useLocation();
   const meta = useSyncMeta();
   const isImmersive = location.pathname.startsWith('/play/') || location.pathname.startsWith('/exercise/');
@@ -30,14 +83,7 @@ export function App() {
             </NavLink>
           )}
           <IdentityBadge />
-          <button
-            type="button"
-            className="app__lang"
-            onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
-            aria-label="Toggle language"
-          >
-            {lang === 'es' ? 'EN' : 'ES'}
-          </button>
+          <LanguageSwitcher />
         </nav>
       </header>
       <main className="app__main">

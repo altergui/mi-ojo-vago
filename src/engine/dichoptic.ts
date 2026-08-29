@@ -105,7 +105,7 @@ export function defaultCalibration(): Calibration {
 export function defaultGameplaySettings(): GameplaySettings {
   return {
     opacity: ['FF', 'FF', 'FF', 'FF'],
-    variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+    variantAlternatives: ['filled', 'hollowLine', 'hollow'],
     variant: 'filled',
     cyanEye: 'left',
     redEyeConfigured: false,

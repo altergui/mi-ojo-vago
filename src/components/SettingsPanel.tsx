@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { asset } from '@/assets';
 import {
   DEFAULT_COLOR_ALTERNATIVES,
   OPACITY_PERCENT,
@@ -48,12 +49,6 @@ interface Props {
   onApplyGameplay: (next: Partial<GameplaySettings>) => void;
   onClose: () => void;
 }
-
-const VARIANT_ICON: Record<string, string> = {
-  filled: '●',
-  hollow: '◍',
-  hollowLine: '◆',
-};
 
 function percentToByte(pct: number): string {
   const entry = Object.entries(OPACITY_PERCENT).find(([, p]) => p === pct);
@@ -160,6 +155,8 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
   const [openMenu, setOpenMenu] = useState<1 | 2 | null>(null);
   /** Whether the gear's calibration popover is open. */
   const [calibOpen, setCalibOpen] = useState(false);
+  /** Whether the "?" contrast-help tooltip is open. */
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const clampToSlotRange = (idx: number, slot: 0 | 1 | 2, l: number): number => {
     const { min, max } = lightnessRange(idx, slot);
@@ -185,6 +182,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
     selectPalette(idx, calibration.colorAlternatives);
     setOpenMenu(null);
     setCalibOpen(false);
+    setHelpOpen(false);
     setSeenOpen(true);
   } else if (!open && seenOpen) {
     setSeenOpen(false);
@@ -219,10 +217,6 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
   const activeColors = colorAlternatives[activeIdx];
   const otherIdx = (activeIdx + 1) % colorAlternatives.length;
   const otherColors = colorAlternatives[otherIdx];
-  /* The dropdown floats on the palette's own background so each step previews
-     in situ, which means its text has to follow that background's lightness
-     (calibration moves it) rather than the modal's dark surface. */
-  const menuInk = hexToHsl(activeColors[0])[2] > 55 ? 'var(--primary-ink)' : 'var(--text)';
   /* Cyan sits over whichever eye wears the cyan lens, so the two squares read
      left-to-right the way the player's own eyes do — but only where the
      setting means anything (Orthoptics); games always get the fixed order,
@@ -274,41 +268,55 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
                   <button
                     type="button"
                     className="preview__pct"
+                    style={{ color: activeColors[slot] }}
                     onClick={() => {
                       setCalibOpen(false);
+                      setHelpOpen(false);
                       setOpenMenu((m) => (m === slot ? null : slot));
                     }}
                     aria-expanded={openMenu === slot}
                   >
-                    {OPACITY_PERCENT[draftGameplay.opacity[slot]]}%
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--muted)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <span className="preview__pct-value">{OPACITY_PERCENT[draftGameplay.opacity[slot]]}%</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
-                )}
-                {openMenu === slot && (
-                  <div className="opacity-menu" style={{ background: activeColors[0], color: menuInk }}>
-                    {OPACITY_STEPS.map((byte) => (
-                      <button
-                        key={byte}
-                        type="button"
-                        className={`opacity-menu__item ${draftGameplay.opacity[slot] === byte ? 'is-selected' : ''}`}
-                        onClick={() => {
-                          setOpacity(slot, byte);
-                          setOpenMenu(null);
-                        }}
-                      >
-                        <span className="opacity-menu__swatch" style={{ background: `${activeColors[slot]}${byte}` }} />
-                        <span className="opacity-menu__pct">{OPACITY_PERCENT[byte]}%</span>
-                      </button>
-                    ))}
-                  </div>
                 )}
               </div>
             ))}
           </div>
 
-          {(openMenu !== null || calibOpen) && (
+          {openMenu !== null &&
+            (() => {
+              const slot = openMenu; // freeze the narrowed value for the closures below
+              const side = eyeSlots[0] === slot ? 'left' : 'right';
+              return (
+                <div
+                  className={`opacity-menu opacity-menu--${side}`}
+                  style={{ background: activeColors[0] }}
+                  onClick={() => setOpenMenu(null)}
+                >
+                  {OPACITY_STEPS.map((byte) => (
+                    <button
+                      key={byte}
+                      type="button"
+                      className={`opacity-menu__item ${draftGameplay.opacity[slot] === byte ? 'is-selected' : ''}`}
+                      onClick={() => {
+                        setOpacity(slot, byte);
+                        setOpenMenu(null);
+                      }}
+                    >
+                      <span className="opacity-menu__swatch" style={{ background: `${activeColors[slot]}${byte}` }} />
+                      <span className="opacity-menu__pct" style={{ color: activeColors[slot] }}>
+                        {OPACITY_PERCENT[byte]}%
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
+          {(openMenu !== null || calibOpen || helpOpen) && (
             <button
               type="button"
               className="preview__scrim"
@@ -316,6 +324,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
               onClick={() => {
                 setOpenMenu(null);
                 setCalibOpen(false);
+                setHelpOpen(false);
               }}
             />
           )}
@@ -341,16 +350,16 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
             </div>
           )}
 
-          {/* Palette switcher, Google-Maps-style: the thumbnail always shows the
-              palette you would get by tapping it, never the one you are on. */}
-          <button type="button" className="preview__layers" onClick={swapPalette} aria-label={t(`palette.${otherIdx === PALETTE_LOW_CONTRAST ? 'violet' : 'white'}`)}>
-            <span className="preview__layers-tile" style={{ background: otherColors[0] }}>
-              {eyeSlots.map((slot) => (
-                <span key={slot} className="preview__layers-dot" style={{ background: `${otherColors[slot]}${draftGameplay.opacity[slot]}` }} />
-              ))}
-              <span className="preview__layers-cap">{t(`palette.${otherIdx === PALETTE_LOW_CONTRAST ? 'violet' : 'white'}`)}</span>
-            </span>
-          </button>
+          {/* Palette switcher, Google-Maps-style: a plain swatch of the palette
+              you would get by tapping it, never the one you are on — no label,
+              its function is discovered by touch. */}
+          <button
+            type="button"
+            className="preview__layers"
+            style={{ background: otherColors[0] }}
+            onClick={swapPalette}
+            aria-label={t(`palette.${otherIdx === PALETTE_LOW_CONTRAST ? 'violet' : 'white'}`)}
+          />
 
           <button
             type="button"
@@ -359,6 +368,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
             aria-expanded={calibOpen}
             onClick={() => {
               setOpenMenu(null);
+              setHelpOpen(false);
               setCalibOpen((c) => !c);
             }}
           >
@@ -367,6 +377,31 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
               <path d="M19.9 15.1a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-2.9-1.2l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0-1.2-2.9H3.4a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.2-2.9l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 2.9-1.2V3.4a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 2.9 1.2l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0 1.2 2.9h.09a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.03z" />
             </svg>
           </button>
+
+          {contrast && (
+            <button
+              type="button"
+              className={`preview__help ${helpOpen ? 'is-open' : ''}`}
+              aria-label={t('settings.contrastHelp')}
+              aria-expanded={helpOpen}
+              onClick={() => {
+                setOpenMenu(null);
+                setCalibOpen(false);
+                setHelpOpen((h) => !h);
+              }}
+            >
+              ?
+            </button>
+          )}
+
+          {helpOpen && (
+            <div className="contrast-help">
+              <div className="contrast-help__img-frame">
+                <img className="contrast-help__img" src={asset('/help/cover-eye.png')} alt="" />
+              </div>
+              <p>{t('settings.contrastHelpText')}</p>
+            </div>
+          )}
         </div>
 
         {fill && (
@@ -375,7 +410,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
             <div className="settings__row">
               {gameplaySettings.variantAlternatives.map((v) => (
                 <button key={v} className={`pill ${draftGameplay.variant === v ? 'is-selected' : ''}`} onClick={() => update({ variant: v })}>
-                  <span className="pill__icon">{VARIANT_ICON[v]}</span>
+                  <span className={`pill__shape pill__shape--${v}`} />
                   {t(`variant.${v}`)}
                 </button>
               ))}

@@ -134,7 +134,13 @@ a {
 .app__nav a.is-active {
   color: var(--text);
 }
+.lang-switcher {
+  position: relative;
+}
 .app__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   background: var(--bg-elev2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -142,6 +148,48 @@ a {
   padding: 0.25rem 0.5rem;
   font-weight: 700;
   cursor: pointer;
+}
+.lang-switcher__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+.lang-switcher__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 2;
+  min-width: 160px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.lang-switcher__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.lang-switcher__item:hover {
+  background: var(--bg-elev2);
+}
+.lang-switcher__item.is-selected {
+  color: var(--primary);
 }
 /* The persistent top-right login/name indicator — shown in the main nav and
    inside every game/exercise topbar, so "logged in" is always verifiable at
@@ -653,28 +701,38 @@ a {
   min-height: 400px;
   border-radius: 14px;
 }
+/* Each eye's column fills the frame top-to-bottom (minus the strip reserved
+   for the palette-switcher/gear at the very bottom) so the square and its
+   contrast value can both be large — this is the panel's main canvas, not a
+   footnote on it. */
 .preview__eyes {
   position: absolute;
-  top: 36px;
-  left: 0;
-  right: 0;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 96px;
   display: flex;
   justify-content: center;
   gap: 24px;
 }
 .preview__eye {
   position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 68px;
+  justify-content: space-between;
+  flex: 1;
+  max-width: 180px;
+  min-width: 0;
 }
 .preview__dot {
-  width: 64px;
-  height: 64px;
-  border-radius: 10px;
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
   position: relative;
+  flex-shrink: 0;
 }
 .preview__dot--filled {
   background: var(--dot-color);
@@ -682,36 +740,38 @@ a {
 .preview__dot--hollow,
 .preview__dot--hollowLine {
   background: transparent;
-  border: 12px solid var(--dot-color);
+  border: 24px solid var(--dot-color);
 }
 .preview__dot--hollowLine::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 9px;
+  width: 18px;
   height: 55%;
   background: var(--dot-color);
   transform: translate(-50%, -50%);
 }
-/* Each eye's contrast reads as a value under its own square, not as a
-   separate row of buttons somewhere else in the panel. */
+/* Each eye's contrast reads as a big value under its own square, coloured
+   like the square itself (not a neutral text colour) so — same as the
+   square — it only reads clearly through that eye's own anaglyph lens. */
 .preview__pct {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  width: 68px;
-  height: 44px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-elev);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 700;
+  gap: 2px;
+  width: 100%;
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 0;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.preview__pct-value {
+  font-size: clamp(28px, 8vw, 42px);
+  font-weight: 800;
+  line-height: 1;
 }
 /* Swallows the tap that dismisses an open popover, so tapping the preview
    closes it the way tapping outside a menu normally does. */
@@ -723,98 +783,81 @@ a {
   background: transparent;
   cursor: default;
 }
-/* The dropdown wears the palette's own background so each step previews in
-   situ; its text colour is set inline from that background's lightness. */
+/* The opacity picker takes over its own eye's half of the preview frame
+   instead of floating in the leftover space under the square — the colour
+   swatches being compared are what matters here, not the square they're
+   editing, so they get the room, while the other eye's square+value stay
+   visible and usable on the other half. Wears the palette's own background
+   so each step previews in situ. Clicking its own background (not an item)
+   closes it, same as the scrim beneath; the flat inner edge marks where it
+   meets the other (still-visible) half. */
 .opacity-menu {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-  width: 112px;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 16px 10px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.opacity-menu--left {
+  left: 0;
+  right: 50%;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.opacity-menu--right {
+  left: 50%;
+  right: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 .opacity-menu__item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 8px;
+  gap: 10px;
+  height: 48px;
+  padding: 0 10px;
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: 12px;
   background: transparent;
   color: inherit;
   cursor: pointer;
 }
 .opacity-menu__item.is-selected {
-  border-color: var(--primary);
+  border-color: #000;
 }
 .opacity-menu__swatch {
-  width: 20px;
-  height: 20px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
-  border-radius: 4px;
+  border-radius: 8px;
 }
 .opacity-menu__pct {
   flex: 1;
   text-align: left;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
 }
-/* Palette switcher, borrowed from a map's satellite/plain toggle: the
-   thumbnail always shows the palette you would switch *to*. */
+/* Palette switcher, borrowed from a map's satellite/plain toggle: always
+   shows the palette you would switch *to*, not the one you're on — nothing
+   but a plain swatch of that palette's own background colour, no label or
+   dots, so its function is discovered by tapping it. */
 .preview__layers {
   position: absolute;
-  left: 14px;
+  left: 16px;
   bottom: 16px;
   z-index: 3;
-  width: 74px;
-  height: 74px;
-  padding: 3px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
   border: none;
-  border-radius: 12px;
-  background: var(--bg-elev);
+  border-radius: 14px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
   cursor: pointer;
-}
-.preview__layers-tile {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 68px;
-  height: 68px;
-  /* Reserves the caption strip's height so the dots centre in what is left
-     above it rather than in the whole tile. */
-  padding-bottom: 19px;
-  border-radius: 9px;
-  overflow: hidden;
-}
-.preview__layers-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-}
-.preview__layers-cap {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 19px;
-  line-height: 19px;
-  background: var(--bg-elev);
-  color: var(--text);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  text-align: center;
 }
 .preview__gear {
   position: absolute;
@@ -837,16 +880,79 @@ a {
   color: var(--primary);
 }
 /* An open dropdown is tall enough to reach the frame's bottom corners, where
-   these two live — on a narrow phone it would land right on top of them. They
-   step aside for as long as it is open. */
+   these three live — on a narrow phone it would land right on top of them.
+   They step aside for as long as it is open. */
 .preview__layers,
-.preview__gear {
+.preview__gear,
+.preview__help {
   transition: opacity 0.12s ease;
 }
 .preview.has-menu .preview__layers,
-.preview.has-menu .preview__gear {
+.preview.has-menu .preview__gear,
+.preview.has-menu .preview__help {
   opacity: 0;
   pointer-events: none;
+}
+/* Same "?" affordance as the calibration gear, right beside it: a quick
+   reminder of how to actually use the contrast control (cover the lazy eye,
+   watch the good eye's square), not buried in a help page. */
+.preview__help {
+  position: absolute;
+  right: 76px;
+  bottom: 16px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.preview__help.is-open {
+  color: var(--primary);
+}
+/* Opens upward from the same corner as the gear's own calibration panel. */
+.contrast-help {
+  position: absolute;
+  right: 16px;
+  bottom: 94px;
+  z-index: 2;
+  width: min(260px, calc(100% - 32px));
+  padding: 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* The illustration is a flat photo on a white background — frames it on its
+   own white card so it reads cleanly regardless of the panel's theme or the
+   currently selected palette's background. */
+.contrast-help__img-frame {
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.contrast-help__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.contrast-help p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--text);
 }
 /* Fine colour trim lives behind the gear: needed once per screen, not every
    session, so it stays out of the way until asked for. */
@@ -894,8 +1000,34 @@ a {
 .pill.is-selected {
   border-color: var(--primary);
 }
-.pill__icon {
-  font-size: 1.1rem;
+/* Mirrors .preview__dot's filled/hollow/hollowLine rendering at icon scale,
+   so the pill choices look like exactly what they'll produce on screen
+   instead of an unrelated glyph. Colored via currentColor so it follows the
+   pill's own text color (including the selected state). */
+.pill__shape {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  position: relative;
+  flex-shrink: 0;
+}
+.pill__shape--filled {
+  background: currentColor;
+}
+.pill__shape--hollow,
+.pill__shape--hollowLine {
+  background: transparent;
+  border: 2.5px solid currentColor;
+}
+.pill__shape--hollowLine::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 55%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
 }
 
 /* ---------- Stats ---------- */
