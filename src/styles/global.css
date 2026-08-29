@@ -134,7 +134,13 @@ a {
 .app__nav a.is-active {
   color: var(--text);
 }
+.lang-switcher {
+  position: relative;
+}
 .app__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   background: var(--bg-elev2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -142,6 +148,48 @@ a {
   padding: 0.25rem 0.5rem;
   font-weight: 700;
   cursor: pointer;
+}
+.lang-switcher__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+.lang-switcher__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 2;
+  min-width: 160px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.lang-switcher__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.lang-switcher__item:hover {
+  background: var(--bg-elev2);
+}
+.lang-switcher__item.is-selected {
+  color: var(--primary);
 }
 /* The persistent top-right login/name indicator — shown in the main nav and
    inside every game/exercise topbar, so "logged in" is always verifiable at
@@ -894,8 +942,34 @@ a {
 .pill.is-selected {
   border-color: var(--primary);
 }
-.pill__icon {
-  font-size: 1.1rem;
+/* Mirrors .preview__dot's filled/hollow/hollowLine rendering at icon scale,
+   so the pill choices look like exactly what they'll produce on screen
+   instead of an unrelated glyph. Colored via currentColor so it follows the
+   pill's own text color (including the selected state). */
+.pill__shape {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  position: relative;
+  flex-shrink: 0;
+}
+.pill__shape--filled {
+  background: currentColor;
+}
+.pill__shape--hollow,
+.pill__shape--hollowLine {
+  background: transparent;
+  border: 2.5px solid currentColor;
+}
+.pill__shape--hollowLine::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 55%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
 }
 
 /* ---------- Stats ---------- */

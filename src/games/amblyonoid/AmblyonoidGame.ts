@@ -15,7 +15,7 @@
  */
 import { asset } from '@/assets';
 import { CanvasLayers } from '@/engine/canvasLayers';
-import { defaultDichopticSettings, type DichopticSettings } from '@/engine/dichoptic';
+import { defaultDichopticSettings, type DichopticSettings, type PointVariant } from '@/engine/dichoptic';
 import { Emitter } from '@/engine/emitter';
 import { fitBox } from '@/engine/fit';
 import { requestAnimFrame } from '@/engine/raf';
@@ -200,11 +200,28 @@ class Ball implements Rect {
     this.speed *= 1.25;
   }
 
-  draw(ctx: CanvasRenderingContext2D, scale: number, color: string) {
+  draw(ctx: CanvasRenderingContext2D, scale: number, color: string, variant: PointVariant) {
+    const cx = this.x * scale;
+    const cy = this.y * scale;
+    const r = this.r * scale;
     ctx.beginPath();
-    ctx.arc(this.x * scale, this.y * scale, this.r * scale, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    if (variant === 'filled') {
+      ctx.fillStyle = color;
+      ctx.fill();
+    } else {
+      ctx.lineWidth = r * 0.35;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      if (variant === 'hollowLine') {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - r * 0.55);
+        ctx.lineTo(cx, cy + r * 0.55);
+        ctx.lineWidth = r * 0.3;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+      }
+    }
   }
 }
 
@@ -249,13 +266,27 @@ class Paddle implements Rect {
     this.updateBox();
   }
 
-  draw(ctx: CanvasRenderingContext2D, scale: number, color: string) {
+  draw(ctx: CanvasRenderingContext2D, scale: number, color: string, variant: PointVariant) {
     const x = this.left * scale;
     const y = this.top * scale;
     const w = this.w * scale;
     const h = this.h * scale;
-    ctx.fillStyle = color;
-    drawRoundRect(ctx, x, y, w, h, h / 2, true, false);
+    if (variant === 'filled') {
+      ctx.fillStyle = color;
+      drawRoundRect(ctx, x, y, w, h, h / 2, true, false);
+    } else {
+      ctx.lineWidth = h * 0.2;
+      ctx.strokeStyle = color;
+      drawRoundRect(ctx, x, y, w, h, h / 2, false, true);
+      if (variant === 'hollowLine') {
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2, y + h * 0.15);
+        ctx.lineTo(x + w / 2, y + h * 0.85);
+        ctx.lineWidth = h * 0.16;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+      }
+    }
   }
 }
 
@@ -781,9 +812,11 @@ export class AmblyonoidGame {
     this.clear('active');
     const ctx = this.layers.ctx.active;
     const scale = this.width / VW;
-    for (const ball of this.balls) ball.draw(ctx, scale, this.settings.color[2]);
-    for (const pill of this.pills) pill.draw(ctx, scale, this.settings.color[2], this.settings.color[1]);
-    this.paddle.draw(ctx, scale, this.settings.color[1]);
+    const ballColor = this.settings.color[2] + this.settings.opacity[2];
+    const paddleColor = this.settings.color[1] + this.settings.opacity[1];
+    for (const ball of this.balls) ball.draw(ctx, scale, ballColor, this.settings.variant);
+    for (const pill of this.pills) pill.draw(ctx, scale, ballColor, paddleColor);
+    this.paddle.draw(ctx, scale, paddleColor, this.settings.variant);
   };
 
   private setMessage(text: string, options?: { font?: string }) {

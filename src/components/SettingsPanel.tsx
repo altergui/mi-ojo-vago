@@ -49,12 +49,6 @@ interface Props {
   onClose: () => void;
 }
 
-const VARIANT_ICON: Record<string, string> = {
-  filled: '●',
-  hollow: '◍',
-  hollowLine: '◆',
-};
-
 function percentToByte(pct: number): string {
   const entry = Object.entries(OPACITY_PERCENT).find(([, p]) => p === pct);
   return entry ? entry[0] : 'FF';
@@ -375,7 +369,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
             <div className="settings__row">
               {gameplaySettings.variantAlternatives.map((v) => (
                 <button key={v} className={`pill ${draftGameplay.variant === v ? 'is-selected' : ''}`} onClick={() => update({ variant: v })}>
-                  <span className="pill__icon">{VARIANT_ICON[v]}</span>
+                  <span className={`pill__shape pill__shape--${v}`} />
                   {t(`variant.${v}`)}
                 </button>
               ))}

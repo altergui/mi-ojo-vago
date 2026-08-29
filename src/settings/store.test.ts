@@ -46,7 +46,7 @@ describe('legacy full DichopticSettings (calibration fields bundled in)', () => 
         colorAlternatives: [['#000000', '#111111', '#222222', '#333333']],
         color: ['#000000', '#111111', '#222222', '#333333'],
         opacity: ['CC', 'CC', 'CC', 'CC'],
-        variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+        variantAlternatives: ['filled', 'hollowLine', 'hollow'],
         variant: 'hollow',
         cyanEye: 'right',
       }),
@@ -68,7 +68,7 @@ describe('legacy full DichopticSettings (calibration fields bundled in)', () => 
           colorAlternatives: [['#000000', '#111111', '#222222', '#333333']],
           color: ['#000000', '#111111', '#222222', '#333333'],
           opacity: ['FF', 'FF', 'FF', 'FF'],
-          variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+          variantAlternatives: ['filled', 'hollowLine', 'hollow'],
           variant: 'filled',
           cyanEye: 'left',
         },
@@ -91,7 +91,7 @@ describe('redEyeConfigured (added after cyanEye existed)', () => {
         updatedAt: 12345,
         settings: {
           opacity: ['FF', 'FF', 'FF', 'FF'],
-          variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+          variantAlternatives: ['filled', 'hollowLine', 'hollow'],
           variant: 'filled',
           cyanEye: 'left',
           // no redEyeConfigured — this record predates the field
@@ -109,7 +109,7 @@ describe('redEyeConfigured (added after cyanEye existed)', () => {
         updatedAt: 12345,
         settings: {
           opacity: ['FF', 'FF', 'FF', 'FF'],
-          variantAlternatives: ['filled', 'hollow', 'hollowLine'],
+          variantAlternatives: ['filled', 'hollowLine', 'hollow'],
           variant: 'filled',
           cyanEye: 'right',
           redEyeConfigured: true,
