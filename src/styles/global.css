@@ -717,6 +717,7 @@ a {
 }
 .preview__eye {
   position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -782,29 +783,44 @@ a {
   background: transparent;
   cursor: default;
 }
-/* The opacity picker takes over the whole preview frame instead of floating
-   in the leftover space under one eye — the colour swatches being compared
-   are what matters here, not the square they're editing, so they get the
-   room. Wears the palette's own background so each step previews in situ;
-   its text colour is set inline from that background's lightness. Clicking
-   its own background (not an item) closes it, same as the scrim beneath. */
+/* The opacity picker takes over its own eye's half of the preview frame
+   instead of floating in the leftover space under the square — the colour
+   swatches being compared are what matters here, not the square they're
+   editing, so they get the room, while the other eye's square+value stay
+   visible and usable on the other half. Wears the palette's own background
+   so each step previews in situ. Clicking its own background (not an item)
+   closes it, same as the scrim beneath; the flat inner edge marks where it
+   meets the other (still-visible) half. */
 .opacity-menu {
   position: absolute;
-  inset: 0;
-  z-index: 2;
-  padding: 20px;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 16px 10px;
   border-radius: 14px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
+}
+.opacity-menu--left {
+  left: 0;
+  right: 50%;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.opacity-menu--right {
+  left: 50%;
+  right: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 .opacity-menu__item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  height: 56px;
-  padding: 0 14px;
+  gap: 10px;
+  height: 48px;
+  padding: 0 10px;
   border: 2px solid transparent;
   border-radius: 12px;
   background: transparent;
@@ -812,18 +828,18 @@ a {
   cursor: pointer;
 }
 .opacity-menu__item.is-selected {
-  border-color: var(--primary);
+  border-color: #000;
 }
 .opacity-menu__swatch {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
   border-radius: 8px;
 }
 .opacity-menu__pct {
   flex: 1;
   text-align: left;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 800;
 }
 /* Palette switcher, borrowed from a map's satellite/plain toggle: the

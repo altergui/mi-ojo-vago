@@ -217,10 +217,6 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
   const activeColors = colorAlternatives[activeIdx];
   const otherIdx = (activeIdx + 1) % colorAlternatives.length;
   const otherColors = colorAlternatives[otherIdx];
-  /* The dropdown floats on the palette's own background so each step previews
-     in situ, which means its text has to follow that background's lightness
-     (calibration moves it) rather than the modal's dark surface. */
-  const menuInk = hexToHsl(activeColors[0])[2] > 55 ? 'var(--primary-ink)' : 'var(--text)';
   /* Cyan sits over whichever eye wears the cyan lens, so the two squares read
      left-to-right the way the player's own eyes do — but only where the
      setting means anything (Orthoptics); games always get the fixed order,
@@ -293,10 +289,11 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
           {openMenu !== null &&
             (() => {
               const slot = openMenu; // freeze the narrowed value for the closures below
+              const side = eyeSlots[0] === slot ? 'left' : 'right';
               return (
                 <div
-                  className="opacity-menu"
-                  style={{ background: activeColors[0], color: menuInk }}
+                  className={`opacity-menu opacity-menu--${side}`}
+                  style={{ background: activeColors[0] }}
                   onClick={() => setOpenMenu(null)}
                 >
                   {OPACITY_STEPS.map((byte) => (
@@ -310,7 +307,9 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
                       }}
                     >
                       <span className="opacity-menu__swatch" style={{ background: `${activeColors[slot]}${byte}` }} />
-                      <span className="opacity-menu__pct">{OPACITY_PERCENT[byte]}%</span>
+                      <span className="opacity-menu__pct" style={{ color: activeColors[slot] }}>
+                        {OPACITY_PERCENT[byte]}%
+                      </span>
                     </button>
                   ))}
                 </div>
