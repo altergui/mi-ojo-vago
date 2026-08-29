@@ -256,7 +256,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
       }
     >
       <div className="settings">
-        <div className={`preview ${openMenu !== null ? 'has-menu' : ''} ${helpOpen ? 'has-help' : ''}`} style={{ background: activeColors[0] }}>
+        <div className={`preview ${openMenu !== null ? 'has-menu' : ''}`} style={{ background: activeColors[0] }}>
           <div className="preview__eyes">
             {eyeSlots.map((slot) => (
               <div key={slot} className="preview__eye">
@@ -350,16 +350,16 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
             </div>
           )}
 
-          {/* Palette switcher, Google-Maps-style: the thumbnail always shows the
-              palette you would get by tapping it, never the one you are on. */}
-          <button type="button" className="preview__layers" onClick={swapPalette} aria-label={t(`palette.${otherIdx === PALETTE_LOW_CONTRAST ? 'violet' : 'white'}`)}>
-            <span className="preview__layers-tile" style={{ background: otherColors[0] }}>
-              {eyeSlots.map((slot) => (
-                <span key={slot} className="preview__layers-dot" style={{ background: `${otherColors[slot]}${draftGameplay.opacity[slot]}` }} />
-              ))}
-              <span className="preview__layers-cap">{t(`palette.${otherIdx === PALETTE_LOW_CONTRAST ? 'violet' : 'white'}`)}</span>
-            </span>
-          </button>
+          {/* Palette switcher, Google-Maps-style: a plain swatch of the palette
+              you would get by tapping it, never the one you are on — no label,
+              its function is discovered by touch. */}
+          <button
+            type="button"
+            className="preview__layers"
+            style={{ background: otherColors[0] }}
+            onClick={swapPalette}
+            aria-label={t(`palette.${otherIdx === PALETTE_LOW_CONTRAST ? 'violet' : 'white'}`)}
+          />
 
           <button
             type="button"

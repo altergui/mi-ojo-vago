@@ -842,55 +842,22 @@ a {
   font-size: 17px;
   font-weight: 800;
 }
-/* Palette switcher, borrowed from a map's satellite/plain toggle: the
-   thumbnail always shows the palette you would switch *to*. */
+/* Palette switcher, borrowed from a map's satellite/plain toggle: always
+   shows the palette you would switch *to*, not the one you're on — nothing
+   but a plain swatch of that palette's own background colour, no label or
+   dots, so its function is discovered by tapping it. */
 .preview__layers {
   position: absolute;
-  left: 14px;
+  left: 16px;
   bottom: 16px;
   z-index: 3;
-  width: 74px;
-  height: 74px;
-  padding: 3px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
   border: none;
-  border-radius: 12px;
-  background: var(--bg-elev);
+  border-radius: 14px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
   cursor: pointer;
-}
-.preview__layers-tile {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 68px;
-  height: 68px;
-  /* Reserves the caption strip's height so the dots centre in what is left
-     above it rather than in the whole tile. */
-  padding-bottom: 19px;
-  border-radius: 9px;
-  overflow: hidden;
-}
-.preview__layers-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-}
-.preview__layers-cap {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 19px;
-  line-height: 19px;
-  background: var(--bg-elev);
-  color: var(--text);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  text-align: center;
 }
 .preview__gear {
   position: absolute;
@@ -913,37 +880,37 @@ a {
   color: var(--primary);
 }
 /* An open dropdown is tall enough to reach the frame's bottom corners, where
-   these two live — on a narrow phone it would land right on top of them. They
-   step aside for as long as it is open. */
+   these three live — on a narrow phone it would land right on top of them.
+   They step aside for as long as it is open. */
 .preview__layers,
-.preview__gear {
+.preview__gear,
+.preview__help {
   transition: opacity 0.12s ease;
 }
 .preview.has-menu .preview__layers,
 .preview.has-menu .preview__gear,
-.preview.has-help .preview__layers,
-.preview.has-help .preview__gear {
+.preview.has-menu .preview__help {
   opacity: 0;
   pointer-events: none;
 }
-/* Same "?" affordance as the calibration gear, opposite corner: a quick
+/* Same "?" affordance as the calibration gear, right beside it: a quick
    reminder of how to actually use the contrast control (cover the lazy eye,
    watch the good eye's square), not buried in a help page. */
 .preview__help {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  right: 76px;
+  bottom: 16px;
   z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
   border: 1px solid var(--border);
   border-radius: 50%;
   background: var(--bg-elev);
   color: var(--text);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
   cursor: pointer;
@@ -951,10 +918,11 @@ a {
 .preview__help.is-open {
   color: var(--primary);
 }
+/* Opens upward from the same corner as the gear's own calibration panel. */
 .contrast-help {
   position: absolute;
-  top: 56px;
   right: 16px;
+  bottom: 94px;
   z-index: 2;
   width: min(260px, calc(100% - 32px));
   padding: 12px;
