@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { asset } from '@/assets';
 import {
   DEFAULT_COLOR_ALTERNATIVES,
   OPACITY_PERCENT,
@@ -154,6 +155,8 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
   const [openMenu, setOpenMenu] = useState<1 | 2 | null>(null);
   /** Whether the gear's calibration popover is open. */
   const [calibOpen, setCalibOpen] = useState(false);
+  /** Whether the "?" contrast-help tooltip is open. */
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const clampToSlotRange = (idx: number, slot: 0 | 1 | 2, l: number): number => {
     const { min, max } = lightnessRange(idx, slot);
@@ -179,6 +182,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
     selectPalette(idx, calibration.colorAlternatives);
     setOpenMenu(null);
     setCalibOpen(false);
+    setHelpOpen(false);
     setSeenOpen(true);
   } else if (!open && seenOpen) {
     setSeenOpen(false);
@@ -256,7 +260,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
       }
     >
       <div className="settings">
-        <div className={`preview ${openMenu !== null ? 'has-menu' : ''}`} style={{ background: activeColors[0] }}>
+        <div className={`preview ${openMenu !== null ? 'has-menu' : ''} ${helpOpen ? 'has-help' : ''}`} style={{ background: activeColors[0] }}>
           <div className="preview__eyes">
             {eyeSlots.map((slot) => (
               <div key={slot} className="preview__eye">
@@ -271,6 +275,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
                     style={{ color: activeColors[slot] }}
                     onClick={() => {
                       setCalibOpen(false);
+                      setHelpOpen(false);
                       setOpenMenu((m) => (m === slot ? null : slot));
                     }}
                     aria-expanded={openMenu === slot}
@@ -312,7 +317,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
               );
             })()}
 
-          {(openMenu !== null || calibOpen) && (
+          {(openMenu !== null || calibOpen || helpOpen) && (
             <button
               type="button"
               className="preview__scrim"
@@ -320,6 +325,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
               onClick={() => {
                 setOpenMenu(null);
                 setCalibOpen(false);
+                setHelpOpen(false);
               }}
             />
           )}
@@ -363,6 +369,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
             aria-expanded={calibOpen}
             onClick={() => {
               setOpenMenu(null);
+              setHelpOpen(false);
               setCalibOpen((c) => !c);
             }}
           >
@@ -371,6 +378,31 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
               <path d="M19.9 15.1a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-2.9-1.2l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0-1.2-2.9H3.4a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.2-2.9l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 2.9-1.2V3.4a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 2.9 1.2l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0 1.2 2.9h.09a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.03z" />
             </svg>
           </button>
+
+          {contrast && (
+            <button
+              type="button"
+              className={`preview__help ${helpOpen ? 'is-open' : ''}`}
+              aria-label={t('settings.contrastHelp')}
+              aria-expanded={helpOpen}
+              onClick={() => {
+                setOpenMenu(null);
+                setCalibOpen(false);
+                setHelpOpen((h) => !h);
+              }}
+            >
+              ?
+            </button>
+          )}
+
+          {helpOpen && (
+            <div className="contrast-help">
+              <div className="contrast-help__img-frame">
+                <img className="contrast-help__img" src={asset('/help/cover-eye.png')} alt="" />
+              </div>
+              <p>{t('settings.contrastHelpText')}</p>
+            </div>
+          )}
         </div>
 
         {fill && (
