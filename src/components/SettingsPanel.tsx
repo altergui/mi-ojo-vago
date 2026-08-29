@@ -268,39 +268,49 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
                   <button
                     type="button"
                     className="preview__pct"
+                    style={{ color: activeColors[slot] }}
                     onClick={() => {
                       setCalibOpen(false);
                       setOpenMenu((m) => (m === slot ? null : slot));
                     }}
                     aria-expanded={openMenu === slot}
                   >
-                    {OPACITY_PERCENT[draftGameplay.opacity[slot]]}%
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--muted)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <span className="preview__pct-value">{OPACITY_PERCENT[draftGameplay.opacity[slot]]}%</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
                 )}
-                {openMenu === slot && (
-                  <div className="opacity-menu" style={{ background: activeColors[0], color: menuInk }}>
-                    {OPACITY_STEPS.map((byte) => (
-                      <button
-                        key={byte}
-                        type="button"
-                        className={`opacity-menu__item ${draftGameplay.opacity[slot] === byte ? 'is-selected' : ''}`}
-                        onClick={() => {
-                          setOpacity(slot, byte);
-                          setOpenMenu(null);
-                        }}
-                      >
-                        <span className="opacity-menu__swatch" style={{ background: `${activeColors[slot]}${byte}` }} />
-                        <span className="opacity-menu__pct">{OPACITY_PERCENT[byte]}%</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
           </div>
+
+          {openMenu !== null &&
+            (() => {
+              const slot = openMenu; // freeze the narrowed value for the closures below
+              return (
+                <div
+                  className="opacity-menu"
+                  style={{ background: activeColors[0], color: menuInk }}
+                  onClick={() => setOpenMenu(null)}
+                >
+                  {OPACITY_STEPS.map((byte) => (
+                    <button
+                      key={byte}
+                      type="button"
+                      className={`opacity-menu__item ${draftGameplay.opacity[slot] === byte ? 'is-selected' : ''}`}
+                      onClick={() => {
+                        setOpacity(slot, byte);
+                        setOpenMenu(null);
+                      }}
+                    >
+                      <span className="opacity-menu__swatch" style={{ background: `${activeColors[slot]}${byte}` }} />
+                      <span className="opacity-menu__pct">{OPACITY_PERCENT[byte]}%</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
 
           {(openMenu !== null || calibOpen) && (
             <button
