@@ -217,11 +217,14 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
   const activeColors = colorAlternatives[activeIdx];
   const otherIdx = (activeIdx + 1) % colorAlternatives.length;
   const otherColors = colorAlternatives[otherIdx];
-  /* Cyan sits over whichever eye wears the cyan lens, so the two squares read
-     left-to-right the way the player's own eyes do — but only where the
-     setting means anything (Orthoptics); games always get the fixed order,
-     since they draw cyan/red as fixed roles regardless of it. */
-  const eyeSlots: (1 | 2)[] = eyeSwap ? (draftGameplay.cyanEye === 'left' ? [1, 2] : [2, 1]) : [1, 2];
+  /* A lens doesn't make its own colour visible — on this app's light
+     backgrounds it makes that colour blend into the tinted background, and
+     reveals the *other* colour as a dark shape instead. So each square
+     shows the colour that eye actually reads (the one opposite its own
+     lens), left-to-right the way the player's own eyes do — but only where
+     the setting means anything (Orthoptics); games always get the fixed
+     order, since they draw cyan/red as fixed roles regardless of it. */
+  const eyeSlots: (1 | 2)[] = eyeSwap ? (draftGameplay.cyanEye === 'left' ? [2, 1] : [1, 2]) : [1, 2];
 
   const swapPalette = () => {
     setOpenMenu(null);

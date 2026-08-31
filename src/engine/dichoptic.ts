@@ -132,6 +132,14 @@ export function redEye(settings: Pick<DichopticSettings, 'cyanEye'>): Eye {
  * tint fills each role changes, so the role's content keeps reaching the
  * intended physical eye no matter which lens that eye actually wears.
  *
+ * On this app's light backgrounds, a lens doesn't make its own colour
+ * visible — it makes it blend into the (similarly-tinted) background. What
+ * the lens reveals as a sharp dark shape is the *other* colour, blocked by
+ * the filter and left showing black against the tinted field. So the
+ * physical left eye's own tint (cyan when cyanEye is 'left') is what it
+ * loses, and red is what it actually reads — the "left" role must be
+ * tinted with whatever colour is NOT the left eye's lens.
+ *
  * `leftIsRed` says whether the "left" role should be tinted red (true) or
  * cyan (false). `dpSign` mirrors the diopter readout to match: swapping
  * which eye is red mirrors the perceived convergence/divergence disparity
@@ -139,6 +147,6 @@ export function redEye(settings: Pick<DichopticSettings, 'cyanEye'>): Eye {
  * so "+" keeps meaning convergence to the person actually looking at it.
  */
 export function orthopticsEyeRoles(cyanEye: Eye): { leftIsRed: boolean; dpSign: 1 | -1 } {
-  const leftIsRed = redEye({ cyanEye }) === 'left';
+  const leftIsRed = cyanEye === 'left';
   return { leftIsRed, dpSign: leftIsRed ? 1 : -1 };
 }

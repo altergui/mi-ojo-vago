@@ -271,8 +271,9 @@ export function OrthopticsExercise() {
   const cyanColor = settings.color[COLOR_INDEX.cyan];
   const redColor = settings.color[COLOR_INDEX.red];
   // "left" role (marker + stim.red) and "right" role (marker + stim.cyan) stay
-  // put — only which color fills each role swaps, so whichever eye the user's
-  // glasses put behind the red lens is always the one that can see the "left" role.
+  // put — only which color fills each role swaps, so the physical left eye
+  // always reads the "left" role, whichever lens it happens to wear
+  // (see orthopticsEyeRoles in dichoptic.ts for why that's the *other* color).
   const leftColor = leftIsRed ? redColor : cyanColor;
   const leftContrast = leftIsRed ? redContrast : cyanContrast;
   const rightColor = leftIsRed ? cyanColor : redColor;
