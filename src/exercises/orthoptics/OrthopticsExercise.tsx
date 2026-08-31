@@ -282,8 +282,8 @@ export function OrthopticsExercise() {
   return (
     <div className="shell shell--orthoptics" style={{ background: settings.color[0] }}>
       <div className="shell__topbar">
-        <Link className="btn btn--ghost" to="/">
-          ← {t('Volver', 'Back')}
+        <Link className="btn btn--icon" to="/" aria-label={t('Volver', 'Back')}>
+          ✕
         </Link>
         <div className="shell__hud">
           <div className="hud__item">

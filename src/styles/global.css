@@ -401,6 +401,7 @@ a {
 .hub__mario {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 2rem;
   flex-wrap: wrap;
   margin: 1.5rem 0;
