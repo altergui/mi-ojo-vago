@@ -18,55 +18,62 @@ Condicionan casi todas las decisiones de abajo, así que conviene tenerlas a man
 - **No hay acceso shell.** Ni SSH, ni rsync, ni el Git Version Control de cPanel (avisa
   que el administrador tiene que habilitar shell access). El deploy va por **FTPS**.
 - **No hay API tokens de cPanel** (`security/api_tokens` da 404), así que el CI no puede
-  purgar el caché. Se resuelve excluyendo la ruta del caché (paso 3).
+  purgar el caché. Se resuelve excluyendo la ruta del caché (paso 2).
 - **El dominio corre PHP 7.4** (`ea-php74___lsphp`), aunque el default del sistema sea
   8.3. `public/sync.php` está escrito para 7.4 — no usar sintaxis de 8.x.
 - **Solo se permite 1 cuenta FTP** en el plan — por eso prod y staging comparten una
   sola cuenta, chrooteada a un directorio contenedor y no a cada entorno por separado.
 - El stack es nginx (caché) → LiteSpeed → lsphp, así que `.htaccess` **sí** se respeta.
 - **El File Manager de este cPanel no tiene opción de crear symlinks**, y sin
-  shell no hay `ln -s`. Por eso el layout de abajo usa rewrite con ruta de
-  filesystem absoluta en vez de symlinks para servir contenido fuera del docroot.
+  shell no hay `ln -s`.
+- **`mod_rewrite` no puede apuntar afuera del docroot.** Un `RewriteRule` cuya
+  sustitución empieza con `/` se interpreta como una URL (relativa a
+  `public_html`), no como una ruta de filesystem — así que no hay forma de sustituir
+  por un path absoluto para servir contenido fuera de `public_html` sin symlink.
+  Probado en carne propia: la primera versión de este layout ponía todo fuera del
+  docroot y el rewrite nunca disparaba (caía siempre al 404 de WordPress). Por
+  eso el layout de abajo vive **adentro** de `public_html`.
 
 ## Cómo está armado
 
-**Todo el contenido vive fuera de `public_html`.** Es el mismo patrón que ya
-usaba el storage de sync (afuera del docroot, para que ningún sync de deploy
-lo borre y no sea descargable por web) — extendido para que el HTML
-desplegado también viva ahí, en vez de meter una cuenta FTP con acceso
-directo a `public_html` (que tocaría WordPress) o exponer `sync-data/`
-adentro del docroot con un `Deny` para compensar.
+`mi-ojo-vago-app/` vive **dentro de `public_html`** (no se puede hacer de otra
+forma sin symlinks, ver arriba). Cada entorno tiene su `html/` (lo que sube el
+CI) y su `db/` (storage de sync) como hermanos:
 
 ```
-/home/dresiribarrencom/mi-ojo-vago-app/   <- fuera de public_html, chroot de la ÚNICA cuenta FTP
+public_html/mi-ojo-vago-app/     <- chroot de la ÚNICA cuenta FTP
+  .htaccess                       <- bloquea acceso directo a stg/db y prod/db
   stg/
     html/        <- deploy-hosting-stg,  server-dir ./stg/html/
-    sync-data/
+    db/
   prod/
     html/        <- deploy-hosting-prod, server-dir ./prod/html/ (dormido hasta el cutover)
-    sync-data/
+    db/
+```
+
+`mi-ojo-vago-app/.htaccess` (nuevo, fuera del repo — nada del deploy lo toca
+nunca):
+
+```apache
+RewriteEngine On
+RewriteRule ^(stg|prod)/db(/|$) - [F,L]
 ```
 
 `public_html/.htaccess` (raíz, agregado **antes** de `# BEGIN WordPress` —
 ese bloque lo regenera WordPress y pisaría cualquier regla puesta adentro o
 después) mapea la URL pública al contenido real con rewrite interno (sin
-`R=`, la URL no cambia en el browser), sustituyendo por una **ruta de
-filesystem absoluta**:
+`R=`, la URL no cambia en el browser), esta vez con una ruta **relativa**
+(mismo docroot, no cruza afuera de `public_html`):
 
 ```apache
-RewriteRule ^mi-ojo-vago_stg/(.*)$ /home/dresiribarrencom/mi-ojo-vago-app/stg/html/$1 [L]
-RewriteRule ^mi-ojo-vago_stg/?$ /home/dresiribarrencom/mi-ojo-vago-app/stg/html/ [L]
+RewriteRule ^mi-ojo-vago_stg/(.*)$ /mi-ojo-vago-app/stg/html/$1 [L]
+RewriteRule ^mi-ojo-vago_stg/?$ /mi-ojo-vago-app/stg/html/ [L]
 
 # Cutover de prod — comentado hasta descomentarlo (ver sección de cutover):
-# RewriteRule ^mi-ojo-vago/(.*)$ /home/dresiribarrencom/mi-ojo-vago-app/prod/html/$1 [L]
-# RewriteRule ^mi-ojo-vago/?$ /home/dresiribarrencom/mi-ojo-vago-app/prod/html/ [L]
+# RewriteRule ^mi-ojo-vago/(.*)$ /mi-ojo-vago-app/prod/html/$1 [L]
+# RewriteRule ^mi-ojo-vago/?$ /mi-ojo-vago-app/prod/html/ [L]
 # ... (redirects de las 10 URLs legacy + /my-lazy-eye/, ver sección de cutover)
 ```
-
-Es el patrón estándar de Apache/LiteSpeed para servir un directorio fuera del
-docroot sin symlink: como el destino no es una URL sino una ruta absoluta,
-Apache lo sirve directo. No necesita nada además de `mod_rewrite` (que este
-hosting ya respeta — lo prueba el rewrite de `sync/<key>` de más abajo).
 
 **Base path por entorno.** `vite.config.ts` lee `VITE_BASE`. Las rutas a `public/assets`
 son literales de runtime que Vite no reescribe, así que pasan por `asset()`
@@ -82,13 +89,15 @@ contrato (GET/PUT de un blob JSON con clave de 64 hex, tope 50KB, TTL 360 días)
 `public/` para viajar dentro de `dist/`, o sea que el endpoint queda versionado junto a
 la app que sirve.
 
-El storage (`storage_dir()` en `sync.php`) es siempre el directorio `sync-data/`
-hermano de donde vive el propio `sync.php` (`dirname(__DIR__) . '/sync-data'`
-— nada de contar niveles ni sufijos, a diferencia del esquema viejo). Como
-`html/` y `sync-data/` son hermanos dentro de `mi-ojo-vago-app/{stg,prod}/`,
-y ese directorio contenedor está entero fuera de `public_html`, `sync-data/`
-nunca es alcanzable por ninguna URL — ninguna regla de `.htaccess` apunta ahí,
-solo a `html/`.
+El storage (`storage_dir()` en `sync.php`) es siempre el directorio `db/`
+hermano de donde vive el propio `sync.php` (`dirname(__DIR__) . '/db'` —
+nada de contar niveles ni sufijos, a diferencia del esquema viejo). Como
+`html/` y `db/` son hermanos dentro de `mi-ojo-vago-app/{stg,prod}/`, y ese
+directorio vive adentro de `public_html`, `db/` **sí** es técnicamente
+alcanzable por URL — por eso lo protege el `.htaccess` de arriba, con
+`[F]` (403), en vez de la garantía más fuerte de estar físicamente afuera del
+docroot que sí tiene, por ejemplo, `sync-data-mi-ojo-vago-dev` (el storage del
+esquema viejo, todavía sin usar/migrar).
 
 Como app y endpoint comparten origen, **no hay CORS**. `public/.htaccess` (el
 que viaja dentro de `dist/`) mapea `<base>/sync/<key>` a `sync.php?code=<key>`,
@@ -107,10 +116,10 @@ El Worker de Cloudflare sigue intacto y atendiendo a los deploys de Cloudflare.
 ## Puesta a punto (una sola vez, en el cPanel)
 
 1. **Cuenta FTP dedicada** — cPanel → *Cuentas FTP* → Añadir:
-   - Directorio: `/home/dresiribarrencom/mi-ojo-vago-app` (fuera de `public_html`)
+   - Directorio: `/home/dresiribarrencom/public_html/mi-ojo-vago-app`
    - Con cuota. **No usar la cuenta principal**: queda chrooteada al directorio del
      deploy, así que el blast radius de esas credenciales es ese directorio y nada más
-     — ni siquiera `public_html`.
+     — no puede tocar WordPress ni nada fuera de `mi-ojo-vago-app/`.
 
 2. **Excluir la ruta del caché** — cPanel → *HTTP Performance* → *Cache* →
    *Crear exclusión*, dominio `dresiribarren.com.ar`, ruta `/mi-ojo-vago_stg`
@@ -127,8 +136,8 @@ El Worker de Cloudflare sigue intacto y atendiendo a los deploys de Cloudflare.
 
 4. **Cron del TTL** — cPanel → *Tareas cron*, una vez por día por entorno:
    ```
-   /usr/local/bin/ea-php74 /home/dresiribarrencom/mi-ojo-vago-app/stg/html/sync.php --gc >/dev/null 2>&1
-   /usr/local/bin/ea-php74 /home/dresiribarrencom/mi-ojo-vago-app/prod/html/sync.php --gc >/dev/null 2>&1
+   /usr/local/bin/ea-php74 /home/dresiribarrencom/public_html/mi-ojo-vago-app/stg/html/sync.php --gc >/dev/null 2>&1
+   /usr/local/bin/ea-php74 /home/dresiribarrencom/public_html/mi-ojo-vago-app/prod/html/sync.php --gc >/dev/null 2>&1
    ```
    Reemplaza el `expirationTtl` que el Worker recibía gratis de KV.
 
@@ -137,9 +146,12 @@ El Worker de Cloudflare sigue intacto y atendiendo a los deploys de Cloudflare.
 ```bash
 BASE=https://dresiribarren.com.ar/mi-ojo-vago_stg
 
-# La app carga, con la versión visible en el footer:
+# La app carga:
 curl -s $BASE/ | grep -q 'id="root"' && echo "app OK"
-curl -s $BASE/ | grep -o 'v[0-9.]* ([0-9a-f]*)'
+
+# La versión vive en el JS bundle, no en index.html:
+JS=$(curl -s $BASE/ | grep -oE '/mi-ojo-vago_stg/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+curl -s "https://dresiribarren.com.ar$JS" | grep -oE 'v[0-9.]+ \([0-9a-f]+\)'
 
 # El caché no pega el index, y staging no se indexa:
 curl -sI $BASE/ | grep -i 'cache-control\|x-cache\|robots'
@@ -151,7 +163,7 @@ curl -s $BASE/sync/$C                                              # {"v":1}
 
 # Rechazos esperados:
 curl -s -o /dev/null -w '%{http_code}\n' $BASE/sync/nope           # 404 (ver nota)
-curl -s -o /dev/null -w '%{http_code}\n' https://dresiribarren.com.ar/mi-ojo-vago-app/  # 404, está fuera del docroot
+curl -s -o /dev/null -w '%{http_code}\n' https://dresiribarren.com.ar/mi-ojo-vago-app/stg/db/  # 403
 
 # Y nada de lo que ya existía se movió:
 curl -s -o /dev/null -w '%{http_code}\n' https://dresiribarren.com.ar/mi-ojo-vago/                 # 200 (WP)
@@ -190,3 +202,6 @@ Pendiente, sin bloquear el cutover:
   Fuera de alcance de este release — los 3 códigos cortos
   (`25-102-412`, `56-194-651`, `80-156-669`) se descartan igual: el Worker ya
   los rechaza.
+- Borrar `sync-data-mi-ojo-vago-dev/` (storage huérfano del esquema viejo,
+  fuera de `public_html`, sin datos valiosos) y el directorio físico viejo
+  `public_html/mi-ojo-vago-dev/`.
