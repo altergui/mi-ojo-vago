@@ -73,9 +73,11 @@ Three targets deploy automatically via GitHub Actions
 - **Dev preview** — `mi-ojo-vago-dev.guidev.org` (Cloudflare Worker), on every
   push to an open pull request targeting `main`. It's a single shared slot, so it
   always reflects whichever PR branch was pushed most recently — not per-PR.
-- **Consulting-room staging** — `dresiribarren.com.ar/mi-ojo-vago-dev`, on every
+- **Consulting-room staging** — `dresiribarren.com.ar/mi-ojo-vago_stg`, on every
   push to an open PR. Uploaded over FTPS to the practice's cPanel hosting, which is
-  where production will eventually live. It serves its own PHP sync endpoint
+  where production will eventually live (`dresiribarren.com.ar/mi-ojo-vago` — a
+  deploy job for it already exists and runs on every push to `main`, but it's
+  dormant until the URL cutover). It serves its own PHP sync endpoint
   (`public/sync.php`) instead of calling the Cloudflare Worker. Setup, constraints
   and verification: [`docs/deploy-cpanel.md`](./docs/deploy-cpanel.md).
 

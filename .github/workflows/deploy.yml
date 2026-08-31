@@ -169,13 +169,13 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-  deploy-hosting-dev:
-    name: Deploy staging (dresiribarren.com.ar/mi-ojo-vago-dev)
+  deploy-hosting-stg:
+    name: Deploy staging (dresiribarren.com.ar/mi-ojo-vago_stg)
     needs: build-and-test
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     concurrency:
-      group: cpanel-deploy-dev
+      group: cpanel-deploy-stg
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
@@ -188,8 +188,8 @@ jobs:
         env:
           # Served from a subdirectory, so assets and the sync endpoint are
           # resolved against this prefix rather than the domain root.
-          VITE_BASE: /mi-ojo-vago-dev/
-          VITE_SYNC_URL: /mi-ojo-vago-dev
+          VITE_BASE: /mi-ojo-vago_stg/
+          VITE_SYNC_URL: /mi-ojo-vago_stg
       - name: Mark staging noindex
         # Staging only — public/.htaccess stays environment-agnostic so the same
         # file can ship to production untouched.
@@ -210,5 +210,41 @@ jobs:
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
           protocol: ftps
           local-dir: ./dist/
-          # The FTP account is chrooted to public_html/mi-ojo-vago-dev.
-          server-dir: ./
+          # The FTP account is chrooted to mi-ojo-vago-app/, outside public_html —
+          # shared with deploy-hosting-prod below, one directory per environment.
+          server-dir: ./stg/html/
+
+  deploy-hosting-prod:
+    name: Deploy production (dresiribarren.com.ar/mi-ojo-vago)
+    needs: build-and-test
+    # Same trigger as deploy-prod (Cloudflare) below. Dormant for now: nothing
+    # in public_html/.htaccess points at prod/html/ yet (that rewrite ships
+    # commented out until the cutover), so this job uploads to a directory no
+    # URL can reach — safe to run from day one.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cpanel-deploy-prod
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_BASE: /mi-ojo-vago/
+          VITE_SYNC_URL: /mi-ojo-vago
+          VITE_DONATION_EMAIL: ${{ vars.VITE_DONATION_EMAIL }}
+          VITE_DONATION_PHONE: ${{ vars.VITE_DONATION_PHONE }}
+      - name: FTPS upload to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
+        with:
+          server: ${{ secrets.CPANEL_FTP_HOST }}
+          username: ${{ secrets.CPANEL_FTP_USER }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ./prod/html/

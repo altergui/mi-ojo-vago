@@ -2,6 +2,16 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 export type Lang = 'es' | 'en';
 
+/**
+ * Resolves `?lang=` from a `location.search` string (e.g. a legacy deep-link
+ * redirect landing with `#/play/amblyotris?lang=en`). `null` means "don't
+ * touch the current language" — no param, or a value we don't recognize.
+ */
+export function langFromSearch(search: string): Lang | null {
+  const requested = new URLSearchParams(search).get('lang');
+  return requested === 'es' || requested === 'en' ? requested : null;
+}
+
 const STRINGS = {
   es: {
     'app.title': 'Mi Ojo Vago',
