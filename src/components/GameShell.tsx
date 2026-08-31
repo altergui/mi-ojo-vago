@@ -222,12 +222,11 @@ export function GameShell({ def }: { def: GameDefinition }) {
 
       <TouchControls scheme={def.controlScheme} onAction={doInput} />
 
-      {/* Menu */}
+      {/* Menu — no explicit "Resume" item: the ✕ in the modal header already
+          closes back to the paused screen (with its own big resume button),
+          so a duplicate action here was redundant. */}
       <Modal open={showMenu} title={t('shell.menu')} onClose={() => setShowMenu(false)}>
         <div className="menu">
-          <button className="btn" onClick={() => { setShowMenu(false); gameRef.current?.resume(); }}>
-            {t('shell.resume')}
-          </button>
           <button className="btn" onClick={() => { setShowMenu(false); setShowSettings(true); }}>
             {t('shell.settings')}
           </button>
