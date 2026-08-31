@@ -18,6 +18,7 @@ const STRINGS = {
     'app.tagline': 'Entrenamiento visual con anteojos anáglifos (rojo/cian) para el ojo vago (ambliopía).',
     'nav.games': 'Juegos',
     'nav.stats': 'Estadísticas',
+    'nav.langToggle': 'Cambiar idioma',
     'hub.about1':
       'Esta página gratuita ha sido posible gracias a un grupo de programadores con problemas visuales que trabajaron mano a mano con oftalmólogos y ortoptistas para desarrollarla. Si quiere colaborar aquí tiene más información. Solo deberá comprar alguno de los anteojos sugeridos al pie que son necesarios para los jueguitos.',
     'hub.about2':
@@ -57,6 +58,13 @@ const STRINGS = {
     'shell.fullscreen': 'Pantalla completa',
     'shell.back': 'Volver',
     'shell.close': 'Cerrar',
+    'tc.left': 'Izquierda',
+    'tc.right': 'Derecha',
+    'tc.up': 'Arriba',
+    'tc.down': 'Abajo',
+    'tc.rotate': 'Rotar',
+    'tc.drop': 'Bajar rápido',
+    'tc.launch': 'Lanzar',
     'shell.score': 'PUNTAJE',
     'shell.level': 'NIVEL',
     'shell.rows': 'LÍNEAS',
@@ -140,6 +148,7 @@ const STRINGS = {
     'app.tagline': 'Vision training with anaglyph (red/cyan) glasses for lazy eye (amblyopia).',
     'nav.games': 'Games',
     'nav.stats': 'Stats',
+    'nav.langToggle': 'Toggle language',
     'hub.about1':
       'This free website has been made possible thanks to a group of visually impaired programmers who worked hand in hand with ophthalmologists and orthoptists to develop it. If you would like to help, you can find more information here. All you have to do is buy one of the glasses suggested at the bottom, which are necessary for the games.',
     'hub.about2':
@@ -179,6 +188,13 @@ const STRINGS = {
     'shell.fullscreen': 'Fullscreen',
     'shell.back': 'Back',
     'shell.close': 'Close',
+    'tc.left': 'Left',
+    'tc.right': 'Right',
+    'tc.up': 'Up',
+    'tc.down': 'Down',
+    'tc.rotate': 'Rotate',
+    'tc.drop': 'Drop',
+    'tc.launch': 'Launch',
     'shell.score': 'SCORE',
     'shell.level': 'LEVEL',
     'shell.rows': 'LINES',
