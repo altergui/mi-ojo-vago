@@ -657,7 +657,7 @@ a {
 .modal__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.75rem;
   padding: 1rem 1.25rem 0.5rem;
 }
 .modal__title {
@@ -665,6 +665,7 @@ a {
   font-size: 1.3rem;
 }
 .modal__close {
+  flex: 0 0 auto;
   background: none;
   border: none;
   color: var(--muted);

@@ -166,8 +166,8 @@ export function GameShell({ def }: { def: GameDefinition }) {
   return (
     <div className="shell" ref={shellRef}>
       <div className="shell__topbar">
-        <button className="btn btn--ghost" onClick={() => navigate('/')}>
-          ← {t('shell.back')}
+        <button className="btn btn--icon" onClick={() => navigate('/')} aria-label={t('shell.back')}>
+          ✕
         </button>
         <div className="shell__hud">
           <div className="hud__item">
@@ -222,9 +222,10 @@ export function GameShell({ def }: { def: GameDefinition }) {
 
       <TouchControls scheme={def.controlScheme} onAction={doInput} />
 
-      {/* Menu — no explicit "Resume" item: the ✕ in the modal header already
-          closes back to the paused screen (with its own big resume button),
-          so a duplicate action here was redundant. */}
+      {/* Menu — no "Resume" or "Back" list items: the modal's own ✕ (top-left,
+          same corner as the topbar's ✕) always steps back exactly one level.
+          Closing the menu resumes the paused game; closing the game (that
+          topbar ✕, once the menu itself is closed) returns to the hub. */}
       <Modal open={showMenu} title={t('shell.menu')} onClose={() => setShowMenu(false)}>
         <div className="menu">
           <button className="btn" onClick={() => { setShowMenu(false); setShowSettings(true); }}>
@@ -238,9 +239,6 @@ export function GameShell({ def }: { def: GameDefinition }) {
           </button>
           <button className="btn" onClick={toggleFullscreen}>
             {t('shell.fullscreen')}
-          </button>
-          <button className="btn btn--ghost" onClick={() => navigate('/')}>
-            {t('shell.back')}
           </button>
         </div>
       </Modal>
