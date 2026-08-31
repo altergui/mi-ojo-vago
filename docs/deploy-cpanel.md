@@ -1,15 +1,12 @@
 # Deploy al hosting del consultorio (cPanel)
 
-Staging vive en `https://dresiribarren.com.ar/mi-ojo-vago_stg/`. Lo publica el
-job `deploy-hosting-stg` de `.github/workflows/deploy.yml` en cada push a un
-PR abierto (o manual, `workflow_dispatch`).
-
-Producción (`/mi-ojo-vago/`) todavía **no** está migrada: esa URL sigue siendo
-la página de WordPress con los links a los juegos de 2022 bajo `/games/`. El
-job `deploy-hosting-prod` ya existe y deploya en cada push a `main`, pero está
-**dormido a propósito**: sube el build a un directorio que hoy ninguna URL
-alcanza (ver "Cómo está armado" más abajo). El cutover final es descomentar
-un bloque de `.htaccess` — ver la sección de cutover al final.
+Staging vive en `https://dresiribarren.com.ar/mi-ojo-vago_stg/`. Producción
+vive en `https://dresiribarren.com.ar/mi-ojo-vago/`, migrada desde la vieja
+página de WordPress con los links a los juegos de 2022 bajo `/games/` — esos
+10 links y `/my-lazy-eye/` (la versión en inglés) redirigen 301 a las rutas
+nuevas equivalentes. Los publica `deploy-hosting-stg`/`deploy-hosting-prod`
+de `.github/workflows/deploy.yml`: staging en cada push a un PR abierto,
+producción en cada push a `main` (ambos también manuales, `workflow_dispatch`).
 
 ## Restricciones del hosting
 
@@ -33,6 +30,15 @@ Condicionan casi todas las decisiones de abajo, así que conviene tenerlas a man
   Probado en carne propia: la primera versión de este layout ponía todo fuera del
   docroot y el rewrite nunca disparaba (caía siempre al 404 de WordPress). Por
   eso el layout de abajo vive **adentro** de `public_html`.
+- **Un `#` sin escapar en un `RewriteRule` corta la línea como comentario**
+  (gotcha del parser de `.htaccess`, nada que ver con mod_rewrite en sí) — hay
+  que escaparlo `\#`. Y aparte, **mod_rewrite percent-encodea ese `#` a `%23`
+  en el `Location:` del redirect** salvo que la regla lleve el flag `NE`
+  (No Escape) — sin `NE` el redirect apunta a una URL con `%23` literal, que el
+  browser manda tal cual al server (no la trata como fragment), así que el
+  hash-route del lado del cliente nunca se aplica. También probado en carne
+  propia: los primeros redirects de deep links quedaban en 301 "correcto" pero
+  aterrizaban en el Hub pelado, perdiendo la ruta y el `?lang=`.
 
 ## Cómo está armado
 
@@ -47,7 +53,7 @@ public_html/mi-ojo-vago-app/     <- chroot de la ÚNICA cuenta FTP
     html/        <- deploy-hosting-stg,  server-dir ./stg/html/
     db/
   prod/
-    html/        <- deploy-hosting-prod, server-dir ./prod/html/ (dormido hasta el cutover)
+    html/        <- deploy-hosting-prod, server-dir ./prod/html/
     db/
 ```
 
@@ -61,19 +67,39 @@ RewriteRule ^(stg|prod)/db(/|$) - [F,L]
 
 `public_html/.htaccess` (raíz, agregado **antes** de `# BEGIN WordPress` —
 ese bloque lo regenera WordPress y pisaría cualquier regla puesta adentro o
-después) mapea la URL pública al contenido real con rewrite interno (sin
-`R=`, la URL no cambia en el browser), esta vez con una ruta **relativa**
-(mismo docroot, no cruza afuera de `public_html`):
+después). Dos tipos de regla conviven:
+
+- **`mi-ojo-vago_stg`/`mi-ojo-vago`**: rewrite interno (sin `R=`, la URL no
+  cambia en el browser) a una ruta **relativa** (mismo docroot, no cruza
+  afuera de `public_html`).
+- **Los 10 deep links legacy + `/my-lazy-eye/`**: redirect externo (`R=301`)
+  a la ruta nueva con hash-route + `?lang=`, con `NE` para que el `#` llegue
+  literal (ver "Restricciones" arriba).
 
 ```apache
 RewriteRule ^mi-ojo-vago_stg/(.*)$ /mi-ojo-vago-app/stg/html/$1 [L]
 RewriteRule ^mi-ojo-vago_stg/?$ /mi-ojo-vago-app/stg/html/ [L]
 
-# Cutover de prod — comentado hasta descomentarlo (ver sección de cutover):
-# RewriteRule ^mi-ojo-vago/(.*)$ /mi-ojo-vago-app/prod/html/$1 [L]
-# RewriteRule ^mi-ojo-vago/?$ /mi-ojo-vago-app/prod/html/ [L]
-# ... (redirects de las 10 URLs legacy + /my-lazy-eye/, ver sección de cutover)
+RewriteRule ^mi-ojo-vago/(.*)$ /mi-ojo-vago-app/prod/html/$1 [L]
+RewriteRule ^mi-ojo-vago/?$ /mi-ojo-vago-app/prod/html/ [L]
+RewriteRule ^my-lazy-eye/?$ https://dresiribarren.com.ar/mi-ojo-vago/\#/?lang=en [R=301,L,NE]
+RewriteRule ^games/amblyotris/index_es\.html$ https://dresiribarren.com.ar/mi-ojo-vago/\#/play/amblyotris?lang=es [R=301,L,NE]
+RewriteRule ^games/amblyotris/index_en\.html$ https://dresiribarren.com.ar/mi-ojo-vago/\#/play/amblyotris?lang=en [R=301,L,NE]
+RewriteRule ^games/amblyonoid/index_es\.html$ https://dresiribarren.com.ar/mi-ojo-vago/\#/play/amblyonoid?lang=es [R=301,L,NE]
+RewriteRule ^games/amblyonoid/index_en\.html$ https://dresiribarren.com.ar/mi-ojo-vago/\#/play/amblyonoid?lang=en [R=301,L,NE]
+RewriteRule ^games/flyingbird/flyingbird-spanish\.html$ https://dresiribarren.com.ar/mi-ojo-vago/\#/play/flyingbird?lang=es [NC,R=301,L,NE]
+RewriteRule ^games/flyingbird/flyingbird-english\.html$ https://dresiribarren.com.ar/mi-ojo-vago/\#/play/flyingbird?lang=en [NC,R=301,L,NE]
+RewriteRule ^games/bridgedodge/.*espaniol\.html$ https://dresiribarren.com.ar/mi-ojo-vago/\#/play/bridgedock?lang=es [NC,R=301,L,NE]
+RewriteRule ^games/bridgedodge/.*ingles\.html$ https://dresiribarren.com.ar/mi-ojo-vago/\#/play/bridgedock?lang=en [NC,R=301,L,NE]
+RewriteRule ^games/ortoptics/ortoptics\.php$ https://dresiribarren.com.ar/mi-ojo-vago/\#/exercise/orthoptics?lang=es [R=301,L,NE]
+RewriteRule ^games/ortoptics/ortoptics-ing\.php$ https://dresiribarren.com.ar/mi-ojo-vago/\#/exercise/orthoptics?lang=en [R=301,L,NE]
 ```
+
+Ids que no coinciden entre legacy y nuevo: `bridgedodge`→`bridgedock` (id en
+`src/games/registry.ts`), `ortoptics`→`exercise/orthoptics` (ruta en
+`src/main.tsx`). El `?lang=` lo lee `src/i18n.tsx` (`langFromSearch`) desde
+`App.tsx` vía `useLocation().search` — funciona con `HashRouter` porque
+`react-router-dom` resuelve `search` correctamente aunque esté después del `#`.
 
 **Base path por entorno.** `vite.config.ts` lee `VITE_BASE`. Las rutas a `public/assets`
 son literales de runtime que Vite no reescribe, así que pasan por `asset()`
@@ -97,7 +123,7 @@ directorio vive adentro de `public_html`, `db/` **sí** es técnicamente
 alcanzable por URL — por eso lo protege el `.htaccess` de arriba, con
 `[F]` (403), en vez de la garantía más fuerte de estar físicamente afuera del
 docroot que sí tiene, por ejemplo, `sync-data-mi-ojo-vago-dev` (el storage del
-esquema viejo, todavía sin usar/migrar).
+esquema viejo, huérfano, sin datos valiosos, pendiente de borrar).
 
 Como app y endpoint comparten origen, **no hay CORS**. `public/.htaccess` (el
 que viaja dentro de `dist/`) mapea `<base>/sync/<key>` a `sync.php?code=<key>`,
@@ -122,12 +148,15 @@ El Worker de Cloudflare sigue intacto y atendiendo a los deploys de Cloudflare.
      — no puede tocar WordPress ni nada fuera de `mi-ojo-vago-app/`.
 
 2. **Excluir la ruta del caché** — cPanel → *HTTP Performance* → *Cache* →
-   *Crear exclusión*, dominio `dresiribarren.com.ar`, ruta `/mi-ojo-vago_stg`
-   (y, al hacer el cutover de prod, otra para `/mi-ojo-vago`).
+   *Crear exclusión*, dominio `dresiribarren.com.ar`, rutas `/mi-ojo-vago_stg`
+   y `/mi-ojo-vago`.
 
    Sin esto el pipeline no sirve: los estáticos vuelven con `max-age=604800`, así que un
    deploy tardaría hasta 7 días en verse. Los assets van con hash en el nombre, así que
-   perder el caché de proxy para esta ruta no cuesta nada.
+   perder el caché de proxy para esta ruta no cuesta nada. Ojo: la exclusión
+   es por *contiene la ruta*, no cubre `/games/...` ni `/my-lazy-eye/` — esos
+   redirects sí pueden quedar cacheados por nginx (`x-cache-status`), lo cual
+   no importa porque el contenido del 301 no cambia.
 
 3. **Secrets en GitHub** — Settings → Secrets and variables → Actions:
    `CPANEL_FTP_HOST`, `CPANEL_FTP_USER`, `CPANEL_FTP_PASSWORD` (de la cuenta
@@ -141,20 +170,17 @@ El Worker de Cloudflare sigue intacto y atendiendo a los deploys de Cloudflare.
    ```
    Reemplaza el `expirationTtl` que el Worker recibía gratis de KV.
 
-## Verificación post-deploy (staging)
+## Verificación post-deploy
 
 ```bash
-BASE=https://dresiribarren.com.ar/mi-ojo-vago_stg
+BASE=https://dresiribarren.com.ar/mi-ojo-vago     # o .../mi-ojo-vago_stg para staging
 
 # La app carga:
 curl -s $BASE/ | grep -q 'id="root"' && echo "app OK"
 
 # La versión vive en el JS bundle, no en index.html:
-JS=$(curl -s $BASE/ | grep -oE '/mi-ojo-vago_stg/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+JS=$(curl -s $BASE/ | grep -oE '/[a-z_-]+/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
 curl -s "https://dresiribarren.com.ar$JS" | grep -oE 'v[0-9.]+ \([0-9a-f]+\)'
-
-# El caché no pega el index, y staging no se indexa:
-curl -sI $BASE/ | grep -i 'cache-control\|x-cache\|robots'
 
 # Round-trip del sync:
 C=$(printf 'test' | sha256sum | cut -d' ' -f1)
@@ -163,45 +189,38 @@ curl -s $BASE/sync/$C                                              # {"v":1}
 
 # Rechazos esperados:
 curl -s -o /dev/null -w '%{http_code}\n' $BASE/sync/nope           # 404 (ver nota)
-curl -s -o /dev/null -w '%{http_code}\n' https://dresiribarren.com.ar/mi-ojo-vago-app/stg/db/  # 403
+curl -s -o /dev/null -w '%{http_code}\n' https://dresiribarren.com.ar/mi-ojo-vago-app/prod/db/  # 403
 
-# Y nada de lo que ya existía se movió:
-curl -s -o /dev/null -w '%{http_code}\n' https://dresiribarren.com.ar/mi-ojo-vago/                 # 200 (WP)
-curl -s -o /dev/null -w '%{http_code}\n' https://dresiribarren.com.ar/games/amblyotris/index_es.html  # 200
+# Los 10 redirects legacy + /my-lazy-eye/: 301 con Location literal (sin %23):
+curl -sI https://dresiribarren.com.ar/games/amblyotris/index_es.html | grep -i location
+curl -sI https://dresiribarren.com.ar/my-lazy-eye/ | grep -i location
+# ...repetir para el resto (ver tabla en "Cómo está armado")
 ```
 
 Después, con el browser: cargar en mobile (375px) y confirmar que **suenan** los cuatro
 juegos — es la prueba real de que los `soundBasePath` quedaron bien, porque un
 `soundBasePath` roto no rompe ni el build ni los tests, solo deja el juego mudo. Probar
-también `?lang=en`/`?lang=es` en un par de rutas nuevas.
+también `?lang=en`/`?lang=es` en un par de rutas nuevas, y que cada uno de
+los 10 links legacy realmente aterrice en la ruta/idioma correctos (no solo
+que el 301 tenga el `Location` bien — abrirlo en el browser).
 
 ## Rollback
 
 Sin shell no hay symlink-swap. El rollback es re-correr el workflow desde un commit
 anterior (`workflow_dispatch`), o sacar la regla de rewrite correspondiente del
-`.htaccess` raíz, más el backup de JetBackup.
+`.htaccess` raíz (`/mi-ojo-vago/` vuelve a caer en WordPress apenas se saca esa
+regla — el directorio físico queda pero deja de ser alcanzable), más el
+backup de JetBackup.
 
-## Cutover a producción
+## Pendiente, sin bloquear nada de lo ya andando
 
-Con staging verificado, descomentar el bloque de prod en `public_html/.htaccess`
-(ya escrito completo, ver "Cómo está armado" arriba: el rewrite de
-`/mi-ojo-vago/` y los 10 redirects 301 de las URLs legacy + `/my-lazy-eye/`,
-con soporte de `?lang=` ya implementado en `src/i18n.tsx`/`App.tsx`), sumar
-la exclusión de caché y el cron de `/mi-ojo-vago` de arriba, y correr la
-verificación equivalente contra `https://dresiribarren.com.ar/mi-ojo-vago`
-más un `curl -sI ... | grep -i location` por cada una de las 10 URLs legacy y
-`/my-lazy-eye/`.
-
-Pendiente, sin bloquear el cutover:
-
-- Despublicar la página de WordPress (ID 362) — prolijidad, no hace falta:
-  el rewrite de `/mi-ojo-vago/` la tapa por completo apenas se activa.
+- Despublicar la página de WordPress `mi-ojo-vago` (ID 362) — prolijidad, no
+  hace falta: el rewrite ya la tapa por completo.
 - Migrar los 9 blobs válidos del KV de Cloudflare (`wrangler kv key get` →
   `PUT` a `sync.php`) para que un código de sync generado en
   `mi-ojo-vago.guidev.org` también sirva en `dresiribarren.com.ar/mi-ojo-vago`.
-  Fuera de alcance de este release — los 3 códigos cortos
-  (`25-102-412`, `56-194-651`, `80-156-669`) se descartan igual: el Worker ya
-  los rechaza.
+  Los 3 códigos cortos (`25-102-412`, `56-194-651`, `80-156-669`) se
+  descartan igual: el Worker ya los rechaza.
 - Borrar `sync-data-mi-ojo-vago-dev/` (storage huérfano del esquema viejo,
   fuera de `public_html`, sin datos valiosos) y el directorio físico viejo
   `public_html/mi-ojo-vago-dev/`.
