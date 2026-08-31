@@ -135,9 +135,15 @@ a {
   color: var(--muted);
   font-weight: 600;
   flex-shrink: 0;
+  transition: color 0.15s ease;
 }
 .app__nav a.is-active {
   color: var(--text);
+}
+@media (hover: hover) {
+  .app__nav a:hover {
+    color: var(--text);
+  }
 }
 .lang-switcher {
   position: relative;
@@ -218,6 +224,12 @@ a {
   max-width: min(240px, 55vw);
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: filter 0.15s ease;
+}
+@media (hover: hover) {
+  .identity-badge:hover {
+    filter: brightness(1.08);
+  }
 }
 .app__main {
   flex: 1 1 auto;
@@ -240,7 +252,16 @@ a {
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.05s ease, background 0.15s ease;
+  transition: transform 0.05s ease, background 0.15s ease, filter 0.15s ease;
+}
+/* Theme-agnostic: a flat brightness lift reads correctly on every variant
+   (primary/accent/ghost/danger) in both the light and dark (in-game) palettes,
+   without hand-picking a hover shade per combination. Mouse-only — touch taps
+   already get feedback from :active below. */
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
 }
 .btn:active {
   transform: scale(0.97);
@@ -393,6 +414,15 @@ a {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: #fff;
+  transition: transform 0.15s ease;
+}
+/* The whole card is the link (image + name + "see more" pill); hovering
+   anywhere on it should read as one clickable unit, so the feedback lives
+   on the image rather than needing a `:hover .btn` chain. */
+@media (hover: hover) {
+  .glasses-card:hover img {
+    transform: translateY(-2px);
+  }
 }
 .glasses-card__name {
   font-size: 0.8rem;
@@ -609,6 +639,11 @@ a {
   cursor: pointer;
   touch-action: none;
   user-select: none;
+}
+@media (hover: hover) {
+  .tc__btn:hover {
+    filter: brightness(1.15);
+  }
 }
 .tc__btn:active {
   background: var(--accent);
@@ -1021,9 +1056,15 @@ a {
   color: var(--text);
   cursor: pointer;
   font-size: 0.85rem;
+  transition: filter 0.15s ease;
 }
 .pill.is-selected {
   border-color: var(--primary);
+}
+@media (hover: hover) {
+  .pill:hover {
+    filter: brightness(1.08);
+  }
 }
 /* Mirrors .preview__dot's filled/hollow/hollowLine rendering at icon scale,
    so the pill choices look like exactly what they'll produce on screen
