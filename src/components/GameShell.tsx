@@ -262,21 +262,16 @@ export function GameShell({ def }: { def: GameDefinition }) {
         <p>{t('shell.confirmReset')}</p>
       </Modal>
 
-      {/* Game over */}
+      {/* Game over — closing (✕, same top-left spot as everywhere else) is
+          the "Volver" action; no separate button duplicating it. */}
       <Modal
         open={!!gameOver}
         title={t('shell.gameover')}
-        hideClose
-        onClose={() => undefined}
+        onClose={() => { setGameOver(null); navigate('/'); }}
         footer={
-          <>
-            <button className="btn btn--ghost" onClick={() => { setGameOver(null); navigate('/'); }}>
-              {t('shell.back')}
-            </button>
-            <button className="btn btn--primary" onClick={handleTryAgain}>
-              {t('shell.tryAgain')}
-            </button>
-          </>
+          <button className="btn btn--primary" onClick={handleTryAgain}>
+            {t('shell.tryAgain')}
+          </button>
         }
       >
         <p>{t('shell.gameoverText')}</p>

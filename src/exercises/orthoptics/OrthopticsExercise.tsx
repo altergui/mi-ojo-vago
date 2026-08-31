@@ -20,7 +20,7 @@
  * for the canvas games (see AmblyonoidGame's normalised 0..1 board space).
  */
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { asset } from '@/assets';
 import { saveCalibration } from '@/calibration/store';
 import { IdentityBadge } from '@/components/IdentityBadge';
@@ -90,6 +90,7 @@ export function OrthopticsExercise() {
   const { lang } = useI18n();
   const es = lang === 'es';
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const [prefs, setPrefs] = useState<OrthopticsPrefs>(() => loadOrthopticsPrefs());
   const settings = useDichopticSettings();
@@ -230,17 +231,16 @@ export function OrthopticsExercise() {
   const t = (esStr: string, enStr: string) => (es ? esStr : enStr);
 
   if (isMobile) {
+    // Closing (✕, top-left — same as everywhere else) is the "Volver"
+    // action; no separate button duplicating it.
     return (
-      <Modal open title={t('No disponible', 'Not available')} hideClose onClose={() => undefined}>
+      <Modal open title={t('No disponible', 'Not available')} onClose={() => navigate('/')}>
         <p>
           {t(
             'Este ejercicio no está disponible en el celular, usá una computadora.',
             'This exercise is not available on mobile, please use a desktop computer.'
           )}
         </p>
-        <Link className="btn btn--primary" to="/">
-          {t('Volver', 'Back')}
-        </Link>
       </Modal>
     );
   }
