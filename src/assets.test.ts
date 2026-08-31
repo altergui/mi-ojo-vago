@@ -21,8 +21,8 @@ describe('asset', () => {
   });
 
   it('prefixes the subdirectory when deployed under one', () => {
-    withBase('/mi-ojo-vago-dev/', () => {
-      expect(asset('/brand/logo.png')).toBe('/mi-ojo-vago-dev/assets/brand/logo.png');
+    withBase('/mi-ojo-vago_stg/', () => {
+      expect(asset('/brand/logo.png')).toBe('/mi-ojo-vago_stg/assets/brand/logo.png');
     });
   });
 

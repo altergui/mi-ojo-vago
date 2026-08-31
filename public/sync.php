@@ -8,9 +8,13 @@
  * Deployed as part of dist/ so the endpoint is versioned with the app it serves.
  * Reached as <base>/sync/<key> via the rewrite in .htaccess.
  *
- * Storage lives OUTSIDE the docroot, named after the deploy directory, so each
- * environment gets its own data and no deploy sync can delete it:
- *   public_html/mi-ojo-vago-dev  ->  ~/sync-data-mi-ojo-vago-dev
+ * Storage is the sibling `db/` directory next to wherever this script itself
+ * lives, so each environment gets its own data and no deploy sync can delete
+ * it. On this host that's e.g. mi-ojo-vago-app/prod/html/sync.php ->
+ * mi-ojo-vago-app/prod/db/ — both live inside public_html (mod_rewrite can't
+ * target a path outside the docroot without a symlink, and this host's File
+ * Manager has no symlink support), so db/ is protected instead by an
+ * explicit deny rule in mi-ojo-vago-app/.htaccess.
  */
 
 declare(strict_types=1);
@@ -23,7 +27,7 @@ const TTL_SECONDS = 31104000;          // 360 * 24 * 60 * 60
 const ALLOWED_ORIGINS = '';
 
 function storage_dir(): string {
-    return dirname(dirname(__DIR__)) . '/sync-data-' . basename(__DIR__);
+    return dirname(__DIR__) . '/db';
 }
 
 function blob_path(string $key): string {

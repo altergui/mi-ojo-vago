@@ -443,6 +443,9 @@ a {
   color: var(--footer-text);
   text-decoration: underline;
 }
+.site-footer__version {
+  opacity: 0.7;
+}
 
 /* ---------- Game shell ---------- */
 .shell {

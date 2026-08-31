@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { IdentityBadge } from './components/IdentityBadge';
 import { asset } from './assets';
-import { useI18n, type Lang } from './i18n';
+import { langFromSearch, useI18n, type Lang } from './i18n';
 import { useSyncMeta } from './sync/useSyncState';
 
 const donationEmail = import.meta.env.VITE_DONATION_EMAIL as string | undefined;
@@ -62,10 +62,20 @@ function LanguageSwitcher() {
 }
 
 export function App() {
-  const { t } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const location = useLocation();
   const meta = useSyncMeta();
   const isImmersive = location.pathname.startsWith('/play/') || location.pathname.startsWith('/exercise/');
+
+  // Legacy deep links redirect here with ?lang=, e.g. #/play/amblyotris?lang=en
+  // — honor it once, same as picking the language from the switcher. Without
+  // the param, behavior is unchanged (localStorage still decides).
+  useEffect(() => {
+    const requested = langFromSearch(location.search);
+    if (requested && requested !== lang) {
+      setLang(requested);
+    }
+  }, [location.search, lang, setLang]);
 
   return (
     <div className="app" data-immersive={isImmersive}>
@@ -92,7 +102,9 @@ export function App() {
       {!isImmersive && (
         <footer className="site-footer">
           <div className="site-footer__inner">
-            <span>{t('footer.copyright')}</span>
+            <span>
+              {t('footer.copyright')} · <span className="site-footer__version">{__APP_VERSION__}</span>
+            </span>
             {(donationEmail || donationPhone) && (
               <span className="site-footer__donations">
                 {t('footer.donationsLabel')}{' '}
