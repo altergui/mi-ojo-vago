@@ -8,9 +8,12 @@ interface ModalProps {
   footer?: ReactNode;
   /** Hide the default close (X); used for blocking dialogs. */
   hideClose?: boolean;
+  /** Accessible name for the ✕ button — pass t('shell.close') so screen
+   * readers hear it in the site's current language, not always English. */
+  closeLabel?: string;
 }
 
-export function Modal({ open, title, onClose, children, footer, hideClose }: ModalProps) {
+export function Modal({ open, title, onClose, children, footer, hideClose, closeLabel = 'Close' }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -30,7 +33,7 @@ export function Modal({ open, title, onClose, children, footer, hideClose }: Mod
                 game topbar's own ✕ (also top-left): closing always steps
                 back exactly one level, in the same corner every time. */}
             {!hideClose && (
-              <button type="button" className="modal__close" onClick={onClose} aria-label="Close">
+              <button type="button" className="modal__close" onClick={onClose} aria-label={closeLabel}>
                 ✕
               </button>
             )}

@@ -247,6 +247,7 @@ export function SettingsPanel({ open, calibration, gameplaySettings, capabilitie
       open={open}
       title={t('settings.title')}
       onClose={onClose}
+      closeLabel={t('shell.close')}
       footer={
         <>
           <button className="btn btn--ghost" onClick={onClose}>

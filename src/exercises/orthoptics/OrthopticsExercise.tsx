@@ -234,7 +234,12 @@ export function OrthopticsExercise() {
     // Closing (✕, top-left — same as everywhere else) is the "Volver"
     // action; no separate button duplicating it.
     return (
-      <Modal open title={t('No disponible', 'Not available')} onClose={() => navigate('/')}>
+      <Modal
+        open
+        title={t('No disponible', 'Not available')}
+        onClose={() => navigate('/')}
+        closeLabel={t('Cerrar', 'Close')}
+      >
         <p>
           {t(
             'Este ejercicio no está disponible en el celular, usá una computadora.',

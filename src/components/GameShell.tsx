@@ -226,7 +226,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
           same corner as the topbar's ✕) always steps back exactly one level.
           Closing the menu resumes the paused game; closing the game (that
           topbar ✕, once the menu itself is closed) returns to the hub. */}
-      <Modal open={showMenu} title={t('shell.menu')} onClose={() => setShowMenu(false)}>
+      <Modal open={showMenu} title={t('shell.menu')} onClose={() => setShowMenu(false)} closeLabel={t('shell.close')}>
         <div className="menu">
           <button className="btn" onClick={() => { setShowMenu(false); setShowSettings(true); }}>
             {t('shell.settings')}
@@ -248,6 +248,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
         open={showConfirmReset}
         title={t('shell.reset')}
         onClose={() => setShowConfirmReset(false)}
+        closeLabel={t('shell.close')}
         footer={
           <>
             <button className="btn btn--ghost" onClick={() => setShowConfirmReset(false)}>
@@ -268,6 +269,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
         open={!!gameOver}
         title={t('shell.gameover')}
         onClose={() => { setGameOver(null); navigate('/'); }}
+        closeLabel={t('shell.close')}
         footer={
           <button className="btn btn--primary" onClick={handleTryAgain}>
             {t('shell.tryAgain')}
