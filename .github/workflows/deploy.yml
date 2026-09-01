@@ -22,12 +22,28 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          # Skips Puppeteer's Chromium download — this job never launches a
+          # browser, that's the e2e-test job's whole job (see below).
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
       - run: npm run build
       - run: npm test
 
+  e2e-test:
+    name: E2E (Puppeteer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:e2e
+
   deploy-prod:
     name: Deploy production (mi-ojo-vago.guidev.org)
-    needs: build-and-test
+    needs: [build-and-test, e2e-test]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     concurrency:
@@ -40,6 +56,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          # Skips Puppeteer's Chromium download — this job never launches a
+          # browser, that's the e2e-test job's whole job (see below).
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
       - run: npm run build
       - name: wrangler deploy (prod)
         run: npx wrangler deploy --config wrangler.jsonc
@@ -49,7 +69,7 @@ jobs:
 
   preview-pr:
     name: Upload PR preview (per-PR URL)
-    needs: build-and-test
+    needs: [build-and-test, e2e-test]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -67,6 +87,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          # Skips Puppeteer's Chromium download — this job never launches a
+          # browser, that's the e2e-test job's whole job (see below).
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
       - run: npm run build
       - name: Ensure preview URLs are enabled
         # Preview URLs live on the Worker's workers.dev subdomain, which is off
@@ -147,7 +171,7 @@ jobs:
 
   deploy-dev:
     name: Deploy dev (mi-ojo-vago-dev.guidev.org)
-    needs: build-and-test
+    needs: [build-and-test, e2e-test]
     # Manual only. Pull requests get their own preview URLs above, so putting a
     # branch on the shared dev domain is now a deliberate act.
     if: github.event_name == 'workflow_dispatch'
@@ -162,6 +186,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          # Skips Puppeteer's Chromium download — this job never launches a
+          # browser, that's the e2e-test job's whole job (see below).
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
       - run: npm run build
       - name: wrangler deploy (dev)
         run: npx wrangler deploy --config wrangler.dev.jsonc
@@ -171,7 +199,7 @@ jobs:
 
   deploy-hosting-stg:
     name: Deploy staging (dresiribarren.com.ar/mi-ojo-vago_stg)
-    needs: build-and-test
+    needs: [build-and-test, e2e-test]
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     concurrency:
@@ -184,6 +212,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          # Skips Puppeteer's Chromium download — this job never launches a
+          # browser, that's the e2e-test job's whole job (see below).
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
       - run: npm run build
         env:
           # Served from a subdirectory, so assets and the sync endpoint are
@@ -216,7 +248,7 @@ jobs:
 
   deploy-hosting-prod:
     name: Deploy production (dresiribarren.com.ar/mi-ojo-vago)
-    needs: build-and-test
+    needs: [build-and-test, e2e-test]
     # Same trigger as deploy-prod (Cloudflare) below. Dormant for now: nothing
     # in public_html/.htaccess points at prod/html/ yet (that rewrite ships
     # commented out until the cutover), so this job uploads to a directory no
@@ -233,6 +265,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          # Skips Puppeteer's Chromium download — this job never launches a
+          # browser, that's the e2e-test job's whole job (see below).
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
       - run: npm run build
         env:
           VITE_BASE: /mi-ojo-vago/
