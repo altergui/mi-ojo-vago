@@ -4,10 +4,16 @@ name: Deploy tetris test build
 # deploy-dev and deploy-hosting-stg jobs already trigger on any bare
 # workflow_dispatch regardless of branch/ref, so a job added there would have
 # redeployed the real dev/staging environments with this branch's code any
-# time this one gets dispatched. Manual only — this is an unlisted playtest
-# build (dresiribarren.com.ar/tetris), not part of the regular release flow.
+# time this one gets dispatched. This is an unlisted playtest build
+# (dresiribarren.com.ar/tetris), not part of the regular release flow, and
+# not meant to land on main.
+#
+# Triggered by push to this branch specifically, not workflow_dispatch:
+# workflow_dispatch only becomes dispatchable once a workflow file has been
+# merged to the default branch at least once, which this deliberately hasn't.
 on:
-  workflow_dispatch: {}
+  push:
+    branches: [tetris-playtest]
 
 permissions:
   contents: read
