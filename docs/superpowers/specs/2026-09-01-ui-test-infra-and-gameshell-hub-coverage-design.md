@@ -153,6 +153,26 @@ and no-op `input`/`resize`/`pause`/`resume`/`togglePause`/`resetGame`/
 `statechange`/`gameover` through it. This keeps the test decoupled from any
 real game's canvas/engine code.
 
+## Implementation note (post-hoc)
+
+The "accept an exit via back button, land on hub, no full reload, history
+index intact" scenario in the coverage table below was dropped during
+implementation after extensive investigation: automated back-navigation
+(via both `page.goBack()` and an in-page `history.back()` call) while
+GameShell's `useBeforeUnload` guard is active triggers a spurious native
+`beforeunload` prompt under Puppeteer/CDP that a real physical back-button
+press never shows (confirmed against the developer's own successful manual
+real-Chrome testing — the very reason GameShell has a separate custom
+popstate-based guard at all). Accepting that spurious prompt tears down the
+page; even with it neutralized for the test, GameShell's own deferred
+`setTimeout(() => history.go(-1), 0)` (the accept path's second, real
+traversal) did not reliably complete within a practical test timeout under
+this automation. This is a CDP/automation-environment limitation, not a
+reproduction of the original bugs it was meant to guard. The cancel path,
+which doesn't depend on that second traversal, is reliable and is covered;
+see `e2e/gameShell-history.e2e.test.ts`'s own scope-note comment. The accept
+round trip remains best verified by hand in a real browser.
+
 ## Risks / open questions
 
 - `@testing-library/jest-dom`'s ambient matcher types (`toBeInTheDocument()`

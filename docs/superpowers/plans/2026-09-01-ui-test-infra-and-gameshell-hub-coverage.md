@@ -752,6 +752,21 @@ describe('native back-button history guard', () => {
 Run: `npm run test:e2e`
 Expected: all cases PASS. If any fails, this is exercising real Chrome/router behavior with no fake underneath it — read the failure message and `page.evaluate(() => location.href)` / dialog messages before changing anything in `GameShell.tsx`; these tests encode already-fixed bugs, so a failure here most likely means a fixture issue (a selector, a timing wait) rather than a real regression, but confirm by reading `src/components/GameShell.tsx`'s history-guard `useEffect` (~line 139) before concluding either way.
 
+**Actual outcome (recorded after implementation):** the "accept an exit via
+back button → lands on hub, no full reload, history index intact" scenario
+had to be dropped. Automated back-navigation while `useBeforeUnload` is
+active triggers a spurious native `beforeunload` prompt under Puppeteer/CDP
+that a real back-button press never shows; accepting it tears the page down,
+and even with it neutralized, GameShell's deferred `history.go(-1)` follow-up
+didn't reliably complete under this automation within a practical timeout.
+Confirmed as a CDP/automation limitation, not a real regression, via
+extensive empirical investigation (see the spec's "Implementation note" and
+the scope-note comment atop `e2e/gameShell-history.e2e.test.ts`). The four
+tests that ARE reliable and shipped: not-guarded-before-started, cancel
+leaves the run intact, re-arm after cancel, and confirmed-exit-via-✕-not-
+silently-undone (which needs no back-navigation at all). The accept round
+trip remains a manual-verification item.
+
 - [ ] **Step 3: Commit**
 
 ```bash
