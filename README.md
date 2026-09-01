@@ -63,10 +63,26 @@ npm run typecheck
 Copy `.env.example` to `.env.local` and set `VITE_DONATION_EMAIL` /
 `VITE_DONATION_PHONE` to show the donations line in the footer (both optional).
 
+### Test
+
+```bash
+npm test          # Vitest: pure logic + jsdom/React Testing Library component tests
+npm run test:e2e  # Puppeteer against a real build — native browser History API behavior
+```
+
+Split by what each layer can actually verify: `npm test` covers pure logic and
+component render/state (fast, in-process, no browser); `npm run test:e2e`
+covers behavior that depends on the real browser History API — native
+back/forward, `popstate` ordering — which jsdom does not reproduce faithfully
+for a hash router. New component tests opt into a DOM via a
+`// @vitest-environment jsdom` docblock at the top of the file rather than
+flipping the whole suite to jsdom.
+
 ## Deploys
 
 Three targets deploy automatically via GitHub Actions
-(`.github/workflows/deploy.yml`), all gated behind `npm run build && npm test`:
+(`.github/workflows/deploy.yml`), all gated behind `npm run build && npm test`
+and a separate `npm run test:e2e` job:
 
 - **Production** — `mi-ojo-vago.guidev.org` (Cloudflare Worker, static-assets
   mode), on every push to `main`.
