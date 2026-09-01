@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { defaultDichopticSettings } from '@/engine/dichoptic';
 import { Emitter } from '@/engine/emitter';
@@ -89,6 +90,7 @@ function renderShell(def: GameDefinition) {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 describe('play/pause topbar button', () => {
@@ -112,5 +114,80 @@ describe('play/pause topbar button', () => {
     expect(screen.getByRole('button', { name: 'Pausa' })).toBeInTheDocument();
     fake.setState({ playing: false, paused: true });
     expect(screen.queryByRole('button', { name: 'Pausa' })).not.toBeInTheDocument();
+  });
+});
+
+describe('exit confirmation', () => {
+  it('confirms before leaving via the topbar ✕ once a run is in progress', async () => {
+    const user = userEvent.setup();
+    const fake = createFakeController();
+    renderShell(createFakeDef(fake.controller));
+    fake.setState({ playing: true, paused: false });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await user.click(screen.getByRole('button', { name: 'Volver' }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not confirm via the topbar ✕ before the game has started', async () => {
+    const user = userEvent.setup();
+    const fake = createFakeController();
+    renderShell(createFakeDef(fake.controller));
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    await user.click(screen.getByRole('button', { name: 'Volver' }));
+    expect(confirmSpy).not.toHaveBeenCalled();
+  });
+
+  it('confirms before leaving via the identity badge once a run is in progress', async () => {
+    const user = userEvent.setup();
+    const fake = createFakeController();
+    renderShell(createFakeDef(fake.controller));
+    fake.setState({ playing: true, paused: false });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await user.click(screen.getByRole('link', { name: 'Iniciar sesión' }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not confirm closing the Game Over modal, even though a run had started', async () => {
+    const user = userEvent.setup();
+    const fake = createFakeController();
+    renderShell(createFakeDef(fake.controller));
+    fake.setState({ playing: true, paused: false });
+    fake.emitGameOver({ points: 42, level: 3 });
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+    expect(confirmSpy).not.toHaveBeenCalled();
+  });
+
+  it('re-arms after a cancelled exit — the next attempt can still confirm', async () => {
+    const user = userEvent.setup();
+    const fake = createFakeController();
+    renderShell(createFakeDef(fake.controller));
+    fake.setState({ playing: true, paused: false });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    await user.click(screen.getByRole('button', { name: 'Volver' }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole('button', { name: 'Volver' }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('beforeunload guard', () => {
+  function dispatchBeforeUnload(): boolean {
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  }
+
+  it('prevents the default beforeunload once a run is in progress', () => {
+    const fake = createFakeController();
+    renderShell(createFakeDef(fake.controller));
+    fake.setState({ playing: true, paused: false });
+    expect(dispatchBeforeUnload()).toBe(true);
+  });
+
+  it('does not prevent beforeunload before the game has started', () => {
+    const fake = createFakeController();
+    renderShell(createFakeDef(fake.controller));
+    expect(dispatchBeforeUnload()).toBe(false);
   });
 });
