@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useBeforeUnload, useBlocker, useNavigate } from 'react-router-dom';
 import { calibrationStore, saveCalibration } from '@/calibration/store';
 import type { Calibration, DichopticSettings, GameplaySettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
@@ -106,6 +106,75 @@ export function GameShell({ def }: { def: GameDefinition }) {
     if (state.playing) setStarted(true);
   }, [state.playing]);
 
+  // There's a run worth protecting once it has started and hasn't ended yet
+  // (playing or manually paused mid-run); once Game Over shows, the score is
+  // already final, so leaving costs nothing.
+  const hasProgress = started && !gameOver;
+
+  // Native "are you sure?" on every way out of an in-progress run: the
+  // topbar ✕ and the Login/identity badge are both router navigations
+  // (navigate('/') / a <NavLink>), which useBlocker covers. The browser's
+  // own back/forward button is a *different* beast: with createHashRouter,
+  // react-router's blocker only reliably intercepts POP navigations whose
+  // target entry it tagged itself, and the entry a back press from here
+  // most commonly lands on is the very first one this tab ever loaded —
+  // untagged, since it predates the router. In testing that combination
+  // silently fails to block (react-router even warns about it in the
+  // console) and the run is lost, so back/forward gets its own guard below
+  // instead of leaning on useBlocker for it.
+  const blocker = useBlocker(hasProgress);
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    if (window.confirm(t('shell.confirmLeave'))) blocker.proceed();
+    else blocker.reset();
+  }, [blocker, t]);
+
+  // Back/forward guard: push a throwaway duplicate history entry (same URL)
+  // while a run is in progress, so the first physical back press just
+  // consumes it — no visible navigation, since the URL doesn't change — and
+  // surfaces here as a popstate we can confirm. Cancel re-arms the guard;
+  // confirm steps back for real (skipping our own handler for that one,
+  // now-expected pop) and lets the router take it from there normally.
+  useEffect(() => {
+    if (!hasProgress) return;
+    let leaving = false;
+    let guarded = false;
+    const pushGuard = () => {
+      window.history.pushState({ __leaveGuard: true }, '', window.location.href);
+      guarded = true;
+    };
+    pushGuard();
+    const onPopState = () => {
+      if (leaving) return;
+      if (window.confirm(t('shell.confirmLeave'))) {
+        leaving = true;
+        guarded = false;
+        window.history.go(-1);
+      } else {
+        pushGuard();
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      // The run ended (or this unmounted) with an unconsumed guard entry
+      // still sitting on top of the stack — pop it silently (same URL, no
+      // visible change) so it doesn't waste the player's next back press.
+      if (guarded && !leaving) window.history.back();
+    };
+  }, [hasProgress, t]);
+
+  useBeforeUnload(
+    useCallback(
+      (e) => {
+        if (!hasProgress) return;
+        e.preventDefault();
+        e.returnValue = '';
+      },
+      [hasProgress]
+    )
+  );
+
   const doInput = useCallback((action: InputAction) => gameRef.current?.input(action), []);
 
   const handleApplyCalibration = (patch: Partial<Calibration>) => {
@@ -192,9 +261,14 @@ export function GameShell({ def }: { def: GameDefinition }) {
           )}
         </div>
         <div className="shell__actions">
-          <button className="btn btn--icon" onClick={() => gameRef.current?.togglePause()} aria-label={t('shell.pause')}>
-            {state.playing ? '❚❚' : '►'}
-          </button>
+          {/* Only while playing: paused already shows the big overlay ►
+              "resume" button over the board, so a second one here would be
+              redundant. */}
+          {state.playing && (
+            <button className="btn btn--icon" onClick={() => gameRef.current?.togglePause()} aria-label={t('shell.pause')}>
+              ❚❚
+            </button>
+          )}
           <button className="btn btn--icon" onClick={openMenu} aria-label={t('shell.menu')}>
             ☰
           </button>
