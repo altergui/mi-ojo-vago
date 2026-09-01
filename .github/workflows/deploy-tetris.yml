@@ -1,0 +1,68 @@
+name: Deploy tetris test build
+
+# Deliberately its own workflow file, not a job inside deploy.yml: deploy.yml's
+# deploy-dev and deploy-hosting-stg jobs already trigger on any bare
+# workflow_dispatch regardless of branch/ref, so a job added there would have
+# redeployed the real dev/staging environments with this branch's code any
+# time this one gets dispatched. This is an unlisted playtest build
+# (dresiribarren.com.ar/tetris), not part of the regular release flow, and
+# not meant to land on main.
+#
+# Triggered by push to this branch specifically, not workflow_dispatch:
+# workflow_dispatch only becomes dispatchable once a workflow file has been
+# merged to the default branch at least once, which this deliberately hasn't.
+on:
+  push:
+    branches: [tetris-playtest]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-hosting-tetris:
+    name: Deploy test build (dresiribarren.com.ar/tetris)
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cpanel-deploy-tetris
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_BASE: /tetris/
+          VITE_SYNC_URL: /tetris
+          # See src/entryGame.ts and docs/deploy-cpanel.md — this is the only
+          # target where these are set. Skips the Hub/login entirely and
+          # lands straight on Amblyotris, with locked pieces keeping their
+          # red/cyan color instead of turning grey once they settle.
+          VITE_ENTRY_GAME: amblyotris
+          VITE_KEEP_LOCK_COLOR: 'true'
+      - name: Mark noindex
+        # Unlisted test URL — public/.htaccess stays environment-agnostic so
+        # the same file can ship to production untouched (see deploy-hosting-stg).
+        run: |
+          cat >> dist/.htaccess <<'HTACCESS'
+
+          <IfModule mod_headers.c>
+            Header set X-Robots-Tag "noindex, nofollow"
+          </IfModule>
+          HTACCESS
+      - name: FTPS upload to cPanel
+        # Pinned to a commit SHA, not a tag: this is a third-party action and it
+        # receives the cPanel FTP credentials, so a moved tag would hand them over.
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
+        with:
+          server: ${{ secrets.CPANEL_FTP_HOST }}
+          username: ${{ secrets.CPANEL_FTP_USER }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          # Same FTP account as stg/prod (only one is allowed on this plan),
+          # chrooted to mi-ojo-vago-app/ — a third sibling directory.
+          server-dir: ./tetris/html/
