@@ -1,3 +1,4 @@
+import { useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { asset } from '@/assets';
 import { GAMES } from '@/games/registry';
@@ -5,9 +6,36 @@ import { useI18n } from '@/i18n';
 import { useStats } from '@/stats/useStats';
 import { formatDuration } from '@/stats/format';
 
+const SCROLL_KEY = 'hub-scroll-y';
+
 export function Hub() {
   const { t, lang } = useI18n();
   const stats = useStats();
+
+  // Remember scroll position across a visit to a game/exercise and back:
+  // every way of leaving the hub (a link push, the browser's own back
+  // button, closing a game) ends up here the same way, as a fresh mount, so
+  // this is simpler and more robust than trying to make every exit path
+  // behave like a history "back". Re-nudged on the next frame too, since
+  // the lazy-loaded card images can still be growing the page's height
+  // right after mount, which would otherwise clamp an early restore short.
+  useLayoutEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved) {
+      const y = Number(saved);
+      window.scrollTo(0, y);
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      lastY = window.scrollY;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      sessionStorage.setItem(SCROLL_KEY, String(lastY));
+    };
+  }, []);
 
   return (
     <div className="hub">

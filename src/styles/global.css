@@ -103,8 +103,10 @@ a {
 
 .app__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 0.4rem 1rem;
   padding: 0.6rem 1rem;
   background: var(--bg-elev);
   border-bottom: 1px solid var(--border);
@@ -124,18 +126,28 @@ a {
 }
 .app__nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  justify-content: flex-end;
+  gap: 0.5rem 1rem;
 }
 .app__nav a {
   color: var(--muted);
   font-weight: 600;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
 }
 .app__nav a.is-active {
   color: var(--text);
 }
+@media (hover: hover) {
+  .app__nav a:hover {
+    color: var(--text);
+  }
+}
 .lang-switcher {
   position: relative;
+  flex-shrink: 0;
 }
 .app__lang {
   display: inline-flex;
@@ -204,6 +216,20 @@ a {
   padding: 0.25rem 0.6rem;
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0;
+  /* A logged-in display name is user-provided and unbounded — clip it
+     instead of ever pushing the rest of the nav/topbar off-screen. Wide
+     enough that the short fixed "log in" label is never truncated, even
+     at the narrowest supported viewport. */
+  max-width: min(240px, 55vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: filter 0.15s ease;
+}
+@media (hover: hover) {
+  .identity-badge:hover {
+    filter: brightness(1.08);
+  }
 }
 .app__main {
   flex: 1 1 auto;
@@ -226,7 +252,16 @@ a {
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.05s ease, background 0.15s ease;
+  transition: transform 0.05s ease, background 0.15s ease, filter 0.15s ease;
+}
+/* Theme-agnostic: a flat brightness lift reads correctly on every variant
+   (primary/accent/ghost/danger) in both the light and dark (in-game) palettes,
+   without hand-picking a hover shade per combination. Mouse-only — touch taps
+   already get feedback from :active below. */
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
 }
 .btn:active {
   transform: scale(0.97);
@@ -379,6 +414,15 @@ a {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: #fff;
+  transition: transform 0.15s ease;
+}
+/* The whole card is the link (image + name + "see more" pill); hovering
+   anywhere on it should read as one clickable unit, so the feedback lives
+   on the image rather than needing a `:hover .btn` chain. */
+@media (hover: hover) {
+  .glasses-card:hover img {
+    transform: translateY(-2px);
+  }
 }
 .glasses-card__name {
   font-size: 0.8rem;
@@ -387,6 +431,7 @@ a {
 .hub__mario {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 2rem;
   flex-wrap: wrap;
   margin: 1.5rem 0;
@@ -461,9 +506,10 @@ a {
 }
 .shell__topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.4rem 0.5rem;
   padding: 0.4rem 0.6rem;
   background: var(--bg-elev);
   border-bottom: 1px solid var(--border);
@@ -471,7 +517,8 @@ a {
 }
 .shell__hud {
   display: flex;
-  gap: 1.2rem;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
 }
 .hud__item {
   display: flex;
@@ -490,7 +537,11 @@ a {
 }
 .shell__actions {
   display: flex;
+  align-items: center;
   gap: 0.4rem;
+  /* When the topbar wraps onto a second line, keep these pinned to the
+     right instead of drifting under the back button on the left. */
+  margin-left: auto;
 }
 .shell__stage {
   position: relative;
@@ -589,6 +640,11 @@ a {
   touch-action: none;
   user-select: none;
 }
+@media (hover: hover) {
+  .tc__btn:hover {
+    filter: brightness(1.15);
+  }
+}
 .tc__btn:active {
   background: var(--accent);
   color: #04211d;
@@ -637,7 +693,7 @@ a {
 .modal__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.75rem;
   padding: 1rem 1.25rem 0.5rem;
 }
 .modal__title {
@@ -645,6 +701,7 @@ a {
   font-size: 1.3rem;
 }
 .modal__close {
+  flex: 0 0 auto;
   background: none;
   border: none;
   color: var(--muted);
@@ -999,9 +1056,15 @@ a {
   color: var(--text);
   cursor: pointer;
   font-size: 0.85rem;
+  transition: filter 0.15s ease;
 }
 .pill.is-selected {
   border-color: var(--primary);
+}
+@media (hover: hover) {
+  .pill:hover {
+    filter: brightness(1.08);
+  }
 }
 /* Mirrors .preview__dot's filled/hollow/hollowLine rendering at icon scale,
    so the pill choices look like exactly what they'll produce on screen

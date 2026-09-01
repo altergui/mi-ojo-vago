@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useBeforeUnload, useBlocker, useNavigate } from 'react-router-dom';
 import { calibrationStore, saveCalibration } from '@/calibration/store';
 import type { Calibration, DichopticSettings, GameplaySettings } from '@/engine/dichoptic';
 import { useI18n } from '@/i18n';
@@ -106,6 +106,89 @@ export function GameShell({ def }: { def: GameDefinition }) {
     if (state.playing) setStarted(true);
   }, [state.playing]);
 
+  // There's a run worth protecting once it has started and hasn't ended yet
+  // (playing or manually paused mid-run); once Game Over shows, the score is
+  // already final, so leaving costs nothing.
+  const hasProgress = started && !gameOver;
+
+  // Native "are you sure?" on every way out of an in-progress run: the
+  // topbar ✕ and the Login/identity badge are both router navigations
+  // (navigate('/') / a <NavLink>), which useBlocker covers. The browser's
+  // own back/forward button is a *different* beast: with createHashRouter,
+  // react-router's blocker only reliably intercepts POP navigations whose
+  // target entry it tagged itself, and the entry a back press from here
+  // most commonly lands on is the very first one this tab ever loaded —
+  // untagged, since it predates the router. In testing that combination
+  // silently fails to block (react-router even warns about it in the
+  // console) and the run is lost, so back/forward gets its own guard below
+  // instead of leaning on useBlocker for it.
+  const blocker = useBlocker(hasProgress);
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    if (window.confirm(t('shell.confirmLeave'))) blocker.proceed();
+    else blocker.reset();
+  }, [blocker, t]);
+
+  // Back/forward guard: push a throwaway duplicate history entry (same URL)
+  // while a run is in progress, so the first physical back press just
+  // consumes it — no visible navigation, since the URL doesn't change — and
+  // surfaces here as a popstate we can confirm. Cancel re-arms the guard;
+  // confirm steps back for real (skipping our own handler for that one,
+  // now-expected pop) and lets the router take it from there normally.
+  useEffect(() => {
+    if (!hasProgress) return;
+    let leaving = false;
+    let guarded = false;
+    const pushGuard = () => {
+      // Carry over the real entry's state (react-router's idx included)
+      // rather than a bare marker object — react-router computes its next
+      // index off whatever's currently in history.state, and a duplicate
+      // that erased it would leave *any* later push/pop, from any exit
+      // path, computing off a missing idx.
+      window.history.pushState({ ...(window.history.state as object | null), __leaveGuard: true }, '', window.location.href);
+      guarded = true;
+    };
+    pushGuard();
+    const onPopState = () => {
+      if (leaving) return;
+      if (window.confirm(t('shell.confirmLeave'))) {
+        leaving = true;
+        guarded = false;
+        // Deferred: calling history.go() synchronously from inside another
+        // history navigation's own popstate handler makes Chrome fall back
+        // to a full page reload instead of an in-memory transition — a
+        // documented History API gotcha. A macrotask is enough to let this
+        // pop's cycle finish first.
+        setTimeout(() => window.history.go(-1), 0);
+      } else {
+        pushGuard();
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      // The run ended (or this unmounted) with an unconsumed guard entry —
+      // pop it silently (same URL, no visible change) so it doesn't waste
+      // the player's next back press, but only if it's still literally the
+      // current entry. A confirmed ✕/game-over exit pushes hub *on top* of
+      // it instead of consuming it, and going back from there would undo
+      // that very navigation.
+      const current = window.history.state as { __leaveGuard?: boolean } | null;
+      if (guarded && !leaving && current?.__leaveGuard) window.history.back();
+    };
+  }, [hasProgress, t]);
+
+  useBeforeUnload(
+    useCallback(
+      (e) => {
+        if (!hasProgress) return;
+        e.preventDefault();
+        e.returnValue = '';
+      },
+      [hasProgress]
+    )
+  );
+
   const doInput = useCallback((action: InputAction) => gameRef.current?.input(action), []);
 
   const handleApplyCalibration = (patch: Partial<Calibration>) => {
@@ -166,8 +249,8 @@ export function GameShell({ def }: { def: GameDefinition }) {
   return (
     <div className="shell" ref={shellRef}>
       <div className="shell__topbar">
-        <button className="btn btn--ghost" onClick={() => navigate('/')}>
-          ← {t('shell.back')}
+        <button className="btn btn--icon" onClick={() => navigate('/')} aria-label={t('shell.back')}>
+          ✕
         </button>
         <div className="shell__hud">
           <div className="hud__item">
@@ -192,9 +275,14 @@ export function GameShell({ def }: { def: GameDefinition }) {
           )}
         </div>
         <div className="shell__actions">
-          <button className="btn btn--icon" onClick={() => gameRef.current?.togglePause()} aria-label={t('shell.pause')}>
-            {state.playing ? '❚❚' : '►'}
-          </button>
+          {/* Only while playing: paused already shows the big overlay ►
+              "resume" button over the board, so a second one here would be
+              redundant. */}
+          {state.playing && (
+            <button className="btn btn--icon" onClick={() => gameRef.current?.togglePause()} aria-label={t('shell.pause')}>
+              ❚❚
+            </button>
+          )}
           <button className="btn btn--icon" onClick={openMenu} aria-label={t('shell.menu')}>
             ☰
           </button>
@@ -222,12 +310,12 @@ export function GameShell({ def }: { def: GameDefinition }) {
 
       <TouchControls scheme={def.controlScheme} onAction={doInput} />
 
-      {/* Menu */}
-      <Modal open={showMenu} title={t('shell.menu')} onClose={() => setShowMenu(false)}>
+      {/* Menu — no "Resume" or "Back" list items: the modal's own ✕ (top-left,
+          same corner as the topbar's ✕) always steps back exactly one level.
+          Closing the menu resumes the paused game; closing the game (that
+          topbar ✕, once the menu itself is closed) returns to the hub. */}
+      <Modal open={showMenu} title={t('shell.menu')} onClose={() => setShowMenu(false)} closeLabel={t('shell.close')}>
         <div className="menu">
-          <button className="btn" onClick={() => { setShowMenu(false); gameRef.current?.resume(); }}>
-            {t('shell.resume')}
-          </button>
           <button className="btn" onClick={() => { setShowMenu(false); setShowSettings(true); }}>
             {t('shell.settings')}
           </button>
@@ -240,9 +328,6 @@ export function GameShell({ def }: { def: GameDefinition }) {
           <button className="btn" onClick={toggleFullscreen}>
             {t('shell.fullscreen')}
           </button>
-          <button className="btn btn--ghost" onClick={() => navigate('/')}>
-            {t('shell.back')}
-          </button>
         </div>
       </Modal>
 
@@ -251,6 +336,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
         open={showConfirmReset}
         title={t('shell.reset')}
         onClose={() => setShowConfirmReset(false)}
+        closeLabel={t('shell.close')}
         footer={
           <>
             <button className="btn btn--ghost" onClick={() => setShowConfirmReset(false)}>
@@ -265,21 +351,17 @@ export function GameShell({ def }: { def: GameDefinition }) {
         <p>{t('shell.confirmReset')}</p>
       </Modal>
 
-      {/* Game over */}
+      {/* Game over — closing (✕, same top-left spot as everywhere else) is
+          the "Volver" action; no separate button duplicating it. */}
       <Modal
         open={!!gameOver}
         title={t('shell.gameover')}
-        hideClose
-        onClose={() => undefined}
+        onClose={() => { setGameOver(null); navigate('/'); }}
+        closeLabel={t('shell.close')}
         footer={
-          <>
-            <button className="btn btn--ghost" onClick={() => { setGameOver(null); navigate('/'); }}>
-              {t('shell.back')}
-            </button>
-            <button className="btn btn--primary" onClick={handleTryAgain}>
-              {t('shell.tryAgain')}
-            </button>
-          </>
+          <button className="btn btn--primary" onClick={handleTryAgain}>
+            {t('shell.tryAgain')}
+          </button>
         }
       >
         <p>{t('shell.gameoverText')}</p>

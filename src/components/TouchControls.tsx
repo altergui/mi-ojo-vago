@@ -1,10 +1,25 @@
 import { useEffect, useRef } from 'react';
+import { useI18n, type StringKey } from '@/i18n';
 import type { ControlScheme, InputAction } from '@/games/types';
 
 interface Props {
   scheme: ControlScheme;
   onAction: (action: InputAction) => void;
 }
+
+/** aria-label per action — the visible glyph (▲/◀/⟳...) carries no text for
+ * screen readers to fall back on, so this is the only accessible name they
+ * get. Keyed to shared i18n strings rather than the raw action id, which
+ * would always read out in English regardless of the site's language. */
+const ACTION_LABEL: Record<InputAction, StringKey> = {
+  left: 'tc.left',
+  right: 'tc.right',
+  up: 'tc.up',
+  down: 'tc.down',
+  rotate: 'tc.rotate',
+  drop: 'tc.drop',
+  launch: 'tc.launch',
+};
 
 /** A control button. Holdable actions auto-repeat while pressed. */
 function CtrlButton({
@@ -20,6 +35,7 @@ function CtrlButton({
   hold?: boolean;
   className?: string;
 }) {
+  const { t } = useI18n();
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const stop = () => {
     if (timer.current) {
@@ -46,7 +62,7 @@ function CtrlButton({
       onPointerUp={stop}
       onPointerLeave={stop}
       onPointerCancel={stop}
-      aria-label={action}
+      aria-label={t(ACTION_LABEL[action])}
     >
       {label}
     </button>

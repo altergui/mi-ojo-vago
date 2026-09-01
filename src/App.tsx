@@ -16,12 +16,19 @@ const LANG_NAMES: Record<Lang, string> = {
 };
 
 function LanguageSwitcher() {
-  const { lang, setLang } = useI18n();
+  const { lang, setLang, t } = useI18n();
   const [open, setOpen] = useState(false);
 
   return (
     <div className="lang-switcher">
-      <button type="button" className="app__lang" onClick={() => setOpen((o) => !o)} aria-haspopup="true" aria-expanded={open} aria-label="Toggle language">
+      <button
+        type="button"
+        className="app__lang"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-label={t('nav.langToggle')}
+      >
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="9" />
           <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
@@ -33,7 +40,7 @@ function LanguageSwitcher() {
       </button>
       {open && (
         <>
-          <button type="button" className="lang-switcher__scrim" aria-label="Close" onClick={() => setOpen(false)} />
+          <button type="button" className="lang-switcher__scrim" aria-label={t('shell.close')} onClick={() => setOpen(false)} />
           <div className="lang-switcher__menu" role="menu">
             {(Object.keys(LANG_NAMES) as Lang[]).map((l) => (
               <button
