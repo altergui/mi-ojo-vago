@@ -8,6 +8,7 @@ import { saveGameplaySettings, settingsStore } from '@/settings/store';
 import { useTrainingRecorder } from '@/stats/useTrainingRecorder';
 import { scheduleSync } from '@/sync/engine';
 import type { GameController, GameDefinition, GameState, InputAction, ScoreInfo } from '@/games/types';
+import { isStandaloneEntry } from '@/entryGame';
 import { IdentityBadge } from './IdentityBadge';
 import { Modal } from './Modal';
 import { SettingsPanel } from './SettingsPanel';
@@ -286,7 +287,7 @@ export function GameShell({ def }: { def: GameDefinition }) {
           <button className="btn btn--icon" onClick={openMenu} aria-label={t('shell.menu')}>
             ☰
           </button>
-          <IdentityBadge />
+          {!isStandaloneEntry && <IdentityBadge />}
         </div>
       </div>
 
