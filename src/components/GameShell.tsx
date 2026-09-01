@@ -140,7 +140,12 @@ export function GameShell({ def }: { def: GameDefinition }) {
     let leaving = false;
     let guarded = false;
     const pushGuard = () => {
-      window.history.pushState({ __leaveGuard: true }, '', window.location.href);
+      // Carry over the real entry's state (react-router's idx included)
+      // rather than a bare marker object — react-router computes its next
+      // index off whatever's currently in history.state, and a duplicate
+      // that erased it would leave *any* later push/pop, from any exit
+      // path, computing off a missing idx.
+      window.history.pushState({ ...(window.history.state as object | null), __leaveGuard: true }, '', window.location.href);
       guarded = true;
     };
     pushGuard();
@@ -149,7 +154,12 @@ export function GameShell({ def }: { def: GameDefinition }) {
       if (window.confirm(t('shell.confirmLeave'))) {
         leaving = true;
         guarded = false;
-        window.history.go(-1);
+        // Deferred: calling history.go() synchronously from inside another
+        // history navigation's own popstate handler makes Chrome fall back
+        // to a full page reload instead of an in-memory transition — a
+        // documented History API gotcha. A macrotask is enough to let this
+        // pop's cycle finish first.
+        setTimeout(() => window.history.go(-1), 0);
       } else {
         pushGuard();
       }
@@ -157,10 +167,14 @@ export function GameShell({ def }: { def: GameDefinition }) {
     window.addEventListener('popstate', onPopState);
     return () => {
       window.removeEventListener('popstate', onPopState);
-      // The run ended (or this unmounted) with an unconsumed guard entry
-      // still sitting on top of the stack — pop it silently (same URL, no
-      // visible change) so it doesn't waste the player's next back press.
-      if (guarded && !leaving) window.history.back();
+      // The run ended (or this unmounted) with an unconsumed guard entry —
+      // pop it silently (same URL, no visible change) so it doesn't waste
+      // the player's next back press, but only if it's still literally the
+      // current entry. A confirmed ✕/game-over exit pushes hub *on top* of
+      // it instead of consuming it, and going back from there would undo
+      // that very navigation.
+      const current = window.history.state as { __leaveGuard?: boolean } | null;
+      if (guarded && !leaving && current?.__leaveGuard) window.history.back();
     };
   }, [hasProgress, t]);
 
