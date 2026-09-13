@@ -141,12 +141,14 @@ export function redEye(settings: Pick<DichopticSettings, 'cyanEye'>): Eye {
  * tinted with whatever colour is NOT the left eye's lens.
  *
  * `leftIsRed` says whether the "left" role should be tinted red (true) or
- * cyan (false). `dpSign` mirrors the diopter readout to match: swapping
- * which eye is red mirrors the perceived convergence/divergence disparity
- * (the two stimuli's fixed screen movement now reaches the opposite eyes),
- * so "+" keeps meaning convergence to the person actually looking at it.
+ * cyan (false). `dpSign` is always +1: the "left"/"right" roles' on-screen
+ * positions never move (only their color assignment does, above), so the
+ * physical left eye always sees the "left" role's offset and the physical
+ * right eye always sees the "right" role's offset regardless of cyanEye —
+ * the disparity actually presented to the patient never changes, so "+"
+ * must keep meaning convergence no matter which eye wears which lens.
  */
-export function orthopticsEyeRoles(cyanEye: Eye): { leftIsRed: boolean; dpSign: 1 | -1 } {
+export function orthopticsEyeRoles(cyanEye: Eye): { leftIsRed: boolean; dpSign: 1 } {
   const leftIsRed = cyanEye === 'left';
-  return { leftIsRed, dpSign: leftIsRed ? 1 : -1 };
+  return { leftIsRed, dpSign: 1 };
 }
