@@ -5,6 +5,9 @@ import { FlyingBirdGame } from './flyingbird/FlyingBirdGame';
 import { asset } from '@/assets';
 import type { GameController, GameDefinition } from './types';
 
+/** See src/entryGame.ts — test-only knob, unset in every real deploy. */
+const KEEP_LOCK_COLOR = import.meta.env.VITE_KEEP_LOCK_COLOR === 'true';
+
 export const GAMES: GameDefinition[] = [
   {
     id: 'amblyotris',
@@ -21,6 +24,7 @@ export const GAMES: GameDefinition[] = [
         subNextCanvas: opts.subNextCanvas,
         settings: opts.settings,
         soundBasePath: asset('/amblyotris'),
+        keepLockColor: KEEP_LOCK_COLOR,
       }) as unknown as GameController,
   },
   {

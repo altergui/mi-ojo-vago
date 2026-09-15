@@ -139,6 +139,58 @@ nunca produce (`src/sync/client.ts` solo manda hashes de 64 hex). La validación
 
 El Worker de Cloudflare sigue intacto y atendiendo a los deploys de Cloudflare.
 
+## Target de prueba: `/tetris`
+
+`https://dresiribarren.com.ar/tetris` es un build de prueba, no linkeado desde
+ningún lado (para que alguien lo abra tiene que conocer la URL). No es un
+entorno más del release normal — vive en su propio workflow,
+`.github/workflows/deploy-tetris.yml`, disparado solo a mano
+(`workflow_dispatch`), porque los jobs `deploy-dev` y `deploy-hosting-stg` de
+`deploy.yml` ya corren con cualquier `workflow_dispatch` sin mirar la rama —
+meterlo ahí adentro habría redeployado dev/staging reales cada vez que se
+dispare este build de prueba.
+
+Dos variantes de producto, controladas por env vars leídas en build time
+(`src/entryGame.ts`, `src/games/registry.ts`), no persistidas en ningún
+`DichopticSettings` ni sincronizadas — con lo cual el resto de los targets
+(dev, stg, prod, Cloudflare) queda bit a bit igual, sin tocar nada:
+
+- `VITE_ENTRY_GAME=amblyotris` — la ruta índice (`/`) redirige directo a
+  `/play/amblyotris` en vez de mostrar el Hub. Como esa ruta ya es
+  "inmersiva" (`App.tsx`, oculta header/nav), y el badge de login del propio
+  `GameShell` también se oculta cuando este flag está seteado, el resultado
+  es: sin Hub, sin login, cae directo al juego.
+- `VITE_KEEP_LOCK_COLOR=true` — variante de juego: una pieza mantiene su
+  color (rojo/cian/gris) al asentarse en la pila, en vez de aplanarse al gris
+  "neutral" (`COLOR_INDEX.grey`, ver `AmblyotrisGame.moveFigurePointsToExistingPieces`).
+  Es lo que se quiere probar acá.
+
+Mismo directorio `mi-ojo-vago-app/` (única cuenta FTP, ver restricciones
+arriba), tercer hermano de `stg/` y `prod/`:
+
+```
+public_html/mi-ojo-vago-app/
+  tetris/
+    html/        <- deploy-tetris.yml, server-dir ./tetris/html/
+    db/
+```
+
+**Paso manual pendiente, fuera del alcance de CI/FTP** (la cuenta FTP está
+chrooteada a `mi-ojo-vago-app/`, no puede escribir `public_html/.htaccess`, y
+no hay shell ni API de cPanel para hacerlo por otro lado — ver
+"Restricciones" arriba). Antes de que la URL sirva contenido, agregar a mano
+en cPanel → File Manager → `public_html/.htaccess` (antes del bloque
+`# BEGIN WordPress`), junto a las reglas de `mi-ojo-vago`/`mi-ojo-vago_stg`:
+
+```apache
+RewriteRule ^tetris/(.*)$ /mi-ojo-vago-app/tetris/html/$1 [L]
+RewriteRule ^tetris/?$ /mi-ojo-vago-app/tetris/html/ [L]
+```
+
+Y, igual que en la puesta a punto de stg/prod, excluir `/tetris` del caché
+(cPanel → *HTTP Performance* → *Cache* → *Crear exclusión*) para que un
+redeploy no tarde hasta 7 días en verse.
+
 ## Puesta a punto (una sola vez, en el cPanel)
 
 1. **Cuenta FTP dedicada** — cPanel → *Cuentas FTP* → Añadir:

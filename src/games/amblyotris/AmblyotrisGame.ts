@@ -64,6 +64,10 @@ export interface AmblyotrisOptions {
   cols?: number;
   rows?: number;
   pieceSpeed?: number;
+  /** Test-variant knob: keep a piece's red/cyan/grey color once it locks onto
+   * the stack, instead of flattening it to the neutral "settled" grey. Off
+   * (faithful to the original game) unless a deploy build opts in. */
+  keepLockColor?: boolean;
 }
 
 type LayerName = 'back' | 'stack' | 'active' | 'front' | 'message';
@@ -117,6 +121,7 @@ export class AmblyotrisGame {
 
   private enableKeyboard: boolean;
   private pauseOnBlur: boolean;
+  private keepLockColor: boolean;
 
   constructor(opts: AmblyotrisOptions) {
     this.board = opts.board;
@@ -127,6 +132,7 @@ export class AmblyotrisGame {
     this.pieceSpeed = opts.pieceSpeed ?? 950;
     this.enableKeyboard = opts.enableKeyboard ?? true;
     this.pauseOnBlur = opts.pauseOnBlur ?? true;
+    this.keepLockColor = opts.keepLockColor ?? false;
     this.settings = { ...defaultDichopticSettings(), ...opts.settings };
 
     this.layers = new CanvasLayers<LayerName>(this.board, ['back', 'stack', 'active', 'front', 'message']);
@@ -442,7 +448,7 @@ export class AmblyotrisGame {
     for (const point of this.currentFigure.getPoints()) {
       point.x += this.globalX;
       point.y += this.globalY;
-      point.color = this.settings.color[3];
+      if (!this.keepLockColor) point.color = this.settings.color[3];
       this.existingPieces[point.y][point.x] = { taken: true, ...point } as BoardPoint;
     }
     this.restartGlobalXAndY();
